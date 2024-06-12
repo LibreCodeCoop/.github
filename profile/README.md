@@ -1,6 +1,6 @@
 # LibreCode Coop
 
-[<img src="assets/logo.png" width="150px"/>](https://librecode.coop)
+[<img src="/assets/logo.png" width="150px"/>](https://librecode.coop)
 
 [LibreCode](https://librecode.coop) is a cooperative of free software developers looking for a way of working that is different from what we have experienced in the corporate world.
 
