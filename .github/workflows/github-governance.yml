@@ -33,42 +33,11 @@ jobs:
       repositories: ${{ steps.repositories.outputs.repositories }}
 
     steps:
-      - name: List repositories
+      - name: Discover repositories
         id: repositories
-        env:
-          ORGANIZATION: LibreCodeCoop
-        run: |
-          repositories='[]'
-          page=1
-
-          while true; do
-            response="$(
-              curl --fail --silent --show-error \
-                --header 'Accept: application/vnd.github+json' \
-                --header 'X-GitHub-Api-Version: 2026-03-10' \
-                "https://api.github.com/orgs/$ORGANIZATION/repos?type=public&per_page=100&page=$page"
-            )"
-
-            count="$(jq 'length' <<< "$response")"
-            if [[ "$count" -eq 0 ]]; then
-              break
-            fi
-
-            repositories="$(
-              jq -cn \
-                --argjson existing "$repositories" \
-                --argjson page "$response" \
-                '$existing + [$page[] | select(.archived == false) | .name] | unique'
-            )"
-
-            if [[ "$count" -lt 100 ]]; then
-              break
-            fi
-
-            page=$((page + 1))
-          done
-
-          echo "repositories=$repositories" >> "$GITHUB_OUTPUT"
+        uses: LibreCodeCoop/github-governance/discover@56c693ff08781d486ff4143f81034d678d054418
+        with:
+          organization: LibreCodeCoop
 
   reconcile:
     name: ${{ inputs.apply && 'Apply' || 'Plan' }} LibreCodeCoop/${{ matrix.repository }}
