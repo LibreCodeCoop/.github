@@ -40,7 +40,7 @@ jobs:
         with:
           client-id: ${{ vars.RULESET_APP_CLIENT_ID }}
           private-key: ${{ secrets.RULESET_APP_PRIVATE_KEY }}
-          owner: LibreCodeCoop
+          owner: LibreCodeCoop # zizmor: ignore[github-app] discovery must enumerate the organization's repositories
           permission-administration: read
 
       - name: Discover repositories
