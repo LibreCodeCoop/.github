@@ -1,0 +1,82 @@
+name: GitHub governance
+
+on:
+  workflow_dispatch:
+    inputs:
+      apply:
+        description: Apply governance changes
+        required: false
+        default: false
+        type: boolean
+  push:
+    branches:
+      - main
+    paths:
+      - governance.config.json
+      - .github/workflows/github-governance.yml
+
+permissions:
+  contents: read
+
+concurrency:
+  group: github-governance
+  cancel-in-progress: false
+
+jobs:
+  discover:
+    name: Discover public repositories
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    outputs:
+      repositories: ${{ steps.repositories.outputs.repositories }}
+
+    steps:
+      - name: List repositories
+        id: repositories
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          repositories="$(
+            gh api \
+              --paginate \
+              "orgs/LibreCodeCoop/repos?type=public&per_page=100" \
+              --jq '.[] | select(.archived == false) | .name' |
+              jq -Rsc 'split("\n") | map(select(length > 0))'
+          )"
+          echo "repositories=$repositories" >> "$GITHUB_OUTPUT"
+
+  reconcile:
+    name: ${{ inputs.apply && 'Apply' || 'Plan' }} LibreCodeCoop/${{ matrix.repository }}
+    needs: discover
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    environment: ruleset-sync
+
+    strategy:
+      fail-fast: false
+      matrix:
+        repository: ${{ fromJSON(needs.discover.outputs.repositories) }}
+
+    steps:
+      - name: Checkout caller configuration
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Generate repository-scoped GitHub App token
+        id: app-token
+        uses: actions/create-github-app-token@bcd2ba49218906704ab6c1aa796996da409d3eb1 # v3
+        with:
+          client-id: ${{ vars.RULESET_APP_CLIENT_ID }}
+          private-key: ${{ secrets.RULESET_APP_PRIVATE_KEY }}
+          owner: LibreCodeCoop
+          repositories: ${{ matrix.repository }}
+          permission-administration: write
+
+      - name: Reconcile repository governance
+        uses: LibreCodeCoop/github-governance@0649e8297c2750778d60defb19ab822619c7e0dc
+        with:
+          token: ${{ steps.app-token.outputs.token }}
+          repository: LibreCodeCoop/${{ matrix.repository }}
+          config: ${{ github.workspace }}/governance.config.json
+          apply: ${{ inputs.apply && 'true' || 'false' }}
