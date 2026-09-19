@@ -36,15 +36,38 @@ jobs:
       - name: List repositories
         id: repositories
         env:
-          GH_TOKEN: ${{ github.token }}
+          ORGANIZATION: LibreCodeCoop
         run: |
-          repositories="$(
-            gh api \
-              --paginate \
-              "orgs/LibreCodeCoop/repos?type=public&per_page=100" \
-              --jq '.[] | select(.archived == false) | .name' |
-              jq -Rsc 'split("\n") | map(select(length > 0))'
-          )"
+          repositories='[]'
+          page=1
+
+          while true; do
+            response="$(
+              curl --fail --silent --show-error \
+                --header 'Accept: application/vnd.github+json' \
+                --header 'X-GitHub-Api-Version: 2026-03-10' \
+                "https://api.github.com/orgs/$ORGANIZATION/repos?type=public&per_page=100&page=$page"
+            )"
+
+            count="$(jq 'length' <<< "$response")"
+            if [[ "$count" -eq 0 ]]; then
+              break
+            fi
+
+            repositories="$(
+              jq -cn \
+                --argjson existing "$repositories" \
+                --argjson page "$response" \
+                '$existing + [$page[] | select(.archived == false) | .name] | unique'
+            )"
+
+            if [[ "$count" -lt 100 ]]; then
+              break
+            fi
+
+            page=$((page + 1))
+          done
+
           echo "repositories=$repositories" >> "$GITHUB_OUTPUT"
 
   reconcile:
