@@ -74,7 +74,7 @@ jobs:
           permission-administration: write
 
       - name: Reconcile repository governance
-        uses: LibreCodeCoop/github-governance@7e9079cbd80761460b2dfe4e4ebf887a6d283ee6
+        uses: LibreCodeCoop/github-governance@0649e8297c2750778d60defb19ab822619c7e0dc
         with:
           token: ${{ steps.app-token.outputs.token }}
           repository: LibreCodeCoop/${{ matrix.repository }}
