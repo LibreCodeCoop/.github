@@ -65,7 +65,8 @@ jobs:
           private-key: ${{ secrets.RULESET_APP_PRIVATE_KEY }}
           owner: LibreCodeCoop
           repositories: ${{ matrix.repository }}
-          permission-administration: ${{ inputs.apply && 'write' || 'read' }}
+          permission-administration: write
+          permission-contents: read
 
       - name: Reconcile repository governance
         uses: LibreCodeCoop/github-governance@56c693ff08781d486ff4143f81034d678d054418
