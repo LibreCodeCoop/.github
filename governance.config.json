@@ -69,7 +69,7 @@
           "parameters": {
             "required_status_checks": [
               {
-                "context": "Governance policy tests"
+                "context": "Vitest"
               },
               {
                 "context": "TypeScript"
