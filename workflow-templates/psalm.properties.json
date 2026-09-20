@@ -1,0 +1,12 @@
+{
+  "name": "Psalm static analysis",
+  "description": "Run Psalm static analysis with the PHP and Nextcloud versions supported by the app.",
+  "iconName": "octicon codescan-checkmark",
+  "categories": [
+    "PHP"
+  ],
+  "filePatterns": [
+    "^composer.json$",
+    "^psalm.xml$"
+  ]
+}
