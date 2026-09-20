@@ -1,0 +1,11 @@
+{
+  "name": "Lint info.xml",
+  "description": "Validate a Nextcloud app's appinfo/info.xml against the App Store schema.",
+  "iconName": "octicon codescan",
+  "categories": [
+    "XML"
+  ],
+  "filePatterns": [
+    "^appinfo/info.xml$"
+  ]
+}

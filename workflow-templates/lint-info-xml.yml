@@ -1,0 +1,16 @@
+# SPDX-FileCopyrightText: 2026 LibreCode coop and contributors
+# SPDX-License-Identifier: AGPL-3.0-or-later
+
+# This workflow is published through the LibreCode organization catalog.
+# Implementation: LibreCodeCoop/github-workflows
+
+name: Lint info.xml
+
+on: pull_request
+
+permissions:
+  contents: read
+
+jobs:
+  lint-info-xml:
+    uses: LibreCodeCoop/github-workflows/.github/workflows/lint-info-xml.yml@c5f578281fa7d270b839866ebc07047287ff50d8
