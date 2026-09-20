@@ -1,0 +1,11 @@
+{
+  "name": "Frontend build",
+  "description": "Install frontend dependencies, validate the lockfile, build assets and check for uncommitted build changes.",
+  "iconName": "octicon package",
+  "categories": [
+    "JavaScript"
+  ],
+  "filePatterns": [
+    "^package.json$"
+  ]
+}
