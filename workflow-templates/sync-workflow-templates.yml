@@ -67,7 +67,7 @@ jobs:
 
       - name: Synchronize workflow templates
         id: sync
-        uses: LibreCodeCoop/github-workflows/actions/sync-workflows@713dffc9b743babb3f3d73c730a689b0c3f96880
+        uses: LibreCodeCoop/github-workflows/actions/sync-workflows@42333e05774f13b83283314079d03614a8beaf82 # v0.1.0
         with:
           source: source/workflow-templates
           target: target
