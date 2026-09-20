@@ -1,0 +1,7 @@
+{
+  "name": "Lint ESLint",
+  "description": "Run the project's ESLint checks with the Node version declared by the project.",
+  "iconName": "octicon code-review",
+  "categories": ["JavaScript"],
+  "filePatterns": ["^package.json$"]
+}
