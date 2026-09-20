@@ -1,0 +1,16 @@
+# SPDX-FileCopyrightText: 2026 LibreCode coop and contributors
+# SPDX-License-Identifier: AGPL-3.0-or-later
+
+# This workflow is published through the LibreCode organization catalog.
+# Implementation: LibreCodeCoop/github-workflows
+
+name: Lint php-cs
+
+on: pull_request
+
+permissions:
+  contents: read
+
+jobs:
+  lint-php-cs:
+    uses: LibreCodeCoop/github-workflows/.github/workflows/lint-php-cs.yml@bc97b54e3d33d58d6075a0994883acde00f0556c
