@@ -1,0 +1,18 @@
+# SPDX-FileCopyrightText: 2026 LibreCode coop and contributors
+# SPDX-License-Identifier: AGPL-3.0-or-later
+
+# This workflow is published through the LibreCode organization catalog.
+# Implementation: LibreCodeCoop/github-workflows
+
+name: Block unconventional commits
+
+on:
+  pull_request:
+    types: [opened, ready_for_review, reopened, synchronize]
+
+permissions:
+  contents: read
+
+jobs:
+  conventional-commits:
+    uses: LibreCodeCoop/github-workflows/.github/workflows/block-unconventional-commits.yml@e2878c8c2d12d0d323116dedd2bcff37706a7eba
