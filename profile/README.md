@@ -1,5 +1,7 @@
 # LibreCode Coop
 
+[<img src="/assets/logo.png" width="150px" alt="LibreCode Coop logo"/>](https://librecode.coop/)
+
 LibreCode Coop is a Brazilian cooperative of free software professionals.
 
 We design, develop, integrate and maintain open-source systems for organizations
