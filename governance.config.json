@@ -69,10 +69,62 @@
           "parameters": {
             "required_status_checks": [
               {
-                "context": "Vitest"
+                "context": "DCO"
+              },
+              {
+                "context": "actionlint"
+              },
+              {
+                "context": "REUSE Compliance Check"
               },
               {
                 "context": "TypeScript"
+              },
+              {
+                "context": "Vitest"
+              },
+              {
+                "context": "zizmor"
+              }
+            ],
+            "strict_required_status_checks_policy": true,
+            "do_not_enforce_on_create": false
+          }
+        }
+      ]
+    },
+    "organization-config-ci": {
+      "name": "Require organization configuration CI",
+      "target": "branch",
+      "enforcement": "active",
+      "bypass_actors": [
+        {
+          "actor_id": 0,
+          "actor_type": "OrganizationAdmin",
+          "bypass_mode": "pull_request"
+        }
+      ],
+      "conditions": {
+        "ref_name": {
+          "include": [
+            "~DEFAULT_BRANCH"
+          ],
+          "exclude": []
+        }
+      },
+      "rules": [
+        {
+          "type": "required_status_checks",
+          "parameters": {
+            "required_status_checks": [
+              {
+                "context": "DCO"
+              },
+              {
+                "context": "actionlint"
+              },
+              {
+                "context": "zizmor"
               }
             ],
             "strict_required_status_checks_policy": true,
@@ -107,6 +159,11 @@
     "github-governance": {
       "policies": [
         "governance-ci"
+      ]
+    },
+    ".github": {
+      "policies": [
+        "organization-config-ci"
       ]
     }
   }
