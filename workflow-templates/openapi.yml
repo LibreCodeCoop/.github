@@ -1,0 +1,16 @@
+# SPDX-FileCopyrightText: 2026 LibreCode coop and contributors
+# SPDX-License-Identifier: AGPL-3.0-or-later
+
+# This workflow is published through the LibreCode organization catalog.
+# Implementation: LibreCodeCoop/github-workflows
+
+name: OpenAPI
+
+on: pull_request
+
+permissions:
+  contents: read
+
+jobs:
+  openapi:
+    uses: LibreCodeCoop/github-workflows/.github/workflows/openapi.yml@bfd8f06a82ff2fdd95becc1f752363c640f314ca
