@@ -1,0 +1,17 @@
+# SPDX-FileCopyrightText: 2026 LibreCode coop and contributors
+# SPDX-License-Identifier: AGPL-3.0-or-later
+
+# This workflow is published through the LibreCode organization catalog.
+# Implementation: LibreCodeCoop/github-workflows
+
+name: Lint eslint
+
+on: pull_request
+
+permissions:
+  contents: read
+  pull-requests: read
+
+jobs:
+  eslint:
+    uses: LibreCodeCoop/github-workflows/.github/workflows/lint-eslint.yml@28874b9141c73178d13aae163503d673d52df5a8
