@@ -1,10 +1,31 @@
 # LibreCode Coop
 
-[<img src="/assets/logo.png" width="150px"/>](https://librecode.coop)
+[<img src="/assets/logo.png" width="150px" alt="LibreCode Coop logo"/>](https://librecode.coop/)
 
-[LibreCode](https://librecode.coop) is a cooperative of free software developers looking for a way of working that is different from what we have experienced in the corporate world.
+LibreCode Coop is a Brazilian cooperative of free software professionals.
 
-[Join LibreCode](https://librecode.coop/jobs/)
-## Know more about us
+We design, develop, integrate and maintain open-source systems for organizations
+that need long-term technical ownership, interoperability and reduced dependency
+on proprietary vendors.
 
-[![Site](https://img.shields.io/badge/Site-0077B5?style=for-the-badge&logo=Site&logoColor=white&style=flat-square)](https://librecode.coop/) [![Telegram](https://img.shields.io/badge/Telegram-0077B5?style=for-the-badge&logo=Telegram&logoColor=white&style=flat-square)](https://t.me/LibreCodeCoop/) [![LinkedIn](https://img.shields.io/badge/LinkedIn-0077B5?style=for-the-badge&logo=linkedin&logoColor=white&style=flat-square)](https://www.linkedin.com/company/librecodecoop/) [![LinkedIn](https://img.shields.io/twitter/url?style=social&url=https%3A%2F%2Ftwitter.com%2FLibreCodeCoop)](https://twitter.com/LibreCodeCoop)
+## What we do
+
+We work with organizations on custom software development, systems integration,
+infrastructure, modernization, automation, maintenance and professional support
+for free software.
+
+Our work includes projects such as LibreSign and contributions across the open
+source ecosystem.
+
+## Work with us
+
+If your organization needs a technical partner for a free software project,
+contact us:
+
+- Website: https://librecode.coop/
+- Email: **contact@librecode.coop**
+- LinkedIn: https://www.linkedin.com/company/librecodecoop/
+- Telegram: https://t.me/LibreCodeCoop/
+
+We also welcome developers interested in joining the cooperative:
+https://librecode.coop/jobs/
