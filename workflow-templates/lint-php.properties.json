@@ -1,0 +1,12 @@
+{
+  "name": "Lint PHP",
+  "description": "Lint PHP code against the minimum and maximum PHP versions supported by the app.",
+  "iconName": "octicon code-square",
+  "categories": [
+    "PHP"
+  ],
+  "filePatterns": [
+    "^composer.json$",
+    "^appinfo/info.xml$"
+  ]
+}
