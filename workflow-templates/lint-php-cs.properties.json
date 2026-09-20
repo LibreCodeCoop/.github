@@ -1,0 +1,11 @@
+{
+  "name": "Lint PHP coding standards",
+  "description": "Run the project's PHP coding standards check using the minimum supported PHP version.",
+  "iconName": "octicon check-circle",
+  "categories": [
+    "PHP"
+  ],
+  "filePatterns": [
+    "^composer.json$"
+  ]
+}
