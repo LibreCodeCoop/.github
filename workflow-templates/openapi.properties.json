@@ -1,0 +1,12 @@
+{
+  "name": "OpenAPI",
+  "description": "Regenerate OpenAPI artifacts and verify that generated JSON and TypeScript files are committed.",
+  "iconName": "octicon file-code",
+  "categories": [
+    "PHP",
+    "JavaScript"
+  ],
+  "filePatterns": [
+    "^composer.json$"
+  ]
+}
