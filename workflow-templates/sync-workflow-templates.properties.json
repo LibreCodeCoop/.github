@@ -1,0 +1,11 @@
+{
+  "name": "Auto workflows update",
+  "description": "Update local workflow copies from the LibreCode organization workflow catalog.",
+  "iconName": "octicon git-pull-request",
+  "categories": [
+    "yml"
+  ],
+  "filePatterns": [
+    ".github/workflows/*"
+  ]
+}

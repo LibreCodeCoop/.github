@@ -1,0 +1,16 @@
+{
+  "name": "Node testing workflow",
+  "description": "Run the shared LibreCode Node test and coverage workflow.",
+  "iconName": "octicon codescan-checkmark",
+  "categories": [
+    "JavaScript",
+    "codecov",
+    "node",
+    "npm",
+    "test",
+    "coverage"
+  ],
+  "filePatterns": [
+    "^package.json$"
+  ]
+}
