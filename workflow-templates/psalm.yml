@@ -1,0 +1,16 @@
+# SPDX-FileCopyrightText: 2026 LibreCode coop and contributors
+# SPDX-License-Identifier: AGPL-3.0-or-later
+
+# This workflow is published through the LibreCode organization catalog.
+# Implementation: LibreCodeCoop/github-workflows
+
+name: Static analysis
+
+on: pull_request
+
+permissions:
+  contents: read
+
+jobs:
+  psalm:
+    uses: LibreCodeCoop/github-workflows/.github/workflows/psalm.yml@bedd8421ad6c95914f10f0dc631333223d17c515
