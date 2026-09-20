@@ -1,0 +1,13 @@
+{
+  "name": "Typechecking",
+  "description": "Run the shared LibreCode TypeScript type-checking workflow.",
+  "iconName": "octicon codescan-checkmark",
+  "categories": [
+    "TypeScript",
+    "code-quality",
+    "npm"
+  ],
+  "filePatterns": [
+    "^tsconfig.json$"
+  ]
+}
