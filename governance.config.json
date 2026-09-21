@@ -159,15 +159,74 @@
     }
   ],
   "repositories": {
-    "github-governance": {
+    "LibreCodeCoop/github-governance": {
       "policies": [
         "governance-ci"
-      ]
+      ],
+      "metadata": {
+        "description": "Declarative, testable GitHub repository governance and ruleset automation for organizations.",
+        "topics": [
+          "hacktoberfest",
+          "github",
+          "governance",
+          "github-actions",
+          "automation",
+          "rulesets",
+          "security",
+          "librecode"
+        ]
+      }
     },
-    ".github": {
+    "LibreCodeCoop/release-tool": {
+      "metadata": {
+        "description": "Production-grade PHP CLI and PHAR for planning and automating reproducible software releases.",
+        "topics": [
+          "hacktoberfest",
+          "php",
+          "cli",
+          "phar",
+          "release-automation",
+          "github-actions",
+          "nextcloud",
+          "nextcloud-app",
+          "semantic-versioning",
+          "changelog",
+          "keep-a-changelog",
+          "librecode"
+        ]
+      }
+    },
+    "LibreCodeCoop/github-workflows": {
+      "metadata": {
+        "description": "Reusable, testable GitHub workflows for LibreCode projects and downstream integrations.",
+        "topics": [
+          "hacktoberfest",
+          "github-actions",
+          "github-workflows",
+          "automation",
+          "ci",
+          "reusable-workflows",
+          "nextcloud",
+          "librecode"
+        ]
+      }
+    },
+    "LibreCodeCoop/.github": {
       "policies": [
         "organization-config-ci"
-      ]
+      ],
+      "metadata": {
+        "description": "Shared GitHub organization profile, community files and workflow catalog for LibreCode Coop.",
+        "homepage": "https://librecode.coop/",
+        "topics": [
+          "hacktoberfest",
+          "github",
+          "organization",
+          "github-actions",
+          "community",
+          "librecode"
+        ]
+      }
     }
   }
 }
