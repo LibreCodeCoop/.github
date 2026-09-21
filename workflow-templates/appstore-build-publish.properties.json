@@ -1,0 +1,5 @@
+{
+  "name": "Build, sign and publish Nextcloud app",
+  "description": "Build a Nextcloud app release, sign the package, attach it to the GitHub release and publish it to the App Store.",
+  "iconName": "octicon package"
+}
