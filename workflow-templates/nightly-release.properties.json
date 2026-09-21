@@ -1,0 +1,5 @@
+{
+  "name": "Publish nightly release",
+  "description": "Build, sign, validate and publish a nightly Nextcloud app package only from the highest numeric stable branch.",
+  "iconName": "octicon moon"
+}
