@@ -46,7 +46,7 @@ jobs:
 
       - name: Discover repositories
         id: repositories
-        uses: LibreCodeCoop/github-governance/discover@5b9ebb58e975854f23ba68adbcf81cfea9b1ec4a # v0.1.0
+        uses: LibreCodeCoop/github-governance/discover@3755c14f01c7d544fe89da3a6daf540faa2510ce # v0.2.0
         with:
           organization: LibreCodeCoop
           token: ${{ steps.app-token.outputs.token }}
@@ -80,7 +80,7 @@ jobs:
           permission-administration: write
 
       - name: Reconcile repository governance
-        uses: LibreCodeCoop/github-governance@5b9ebb58e975854f23ba68adbcf81cfea9b1ec4a # v0.1.0
+        uses: LibreCodeCoop/github-governance@3755c14f01c7d544fe89da3a6daf540faa2510ce # v0.2.0
         with:
           token: ${{ steps.app-token.outputs.token }}
           repository: LibreCodeCoop/${{ matrix.repository }}
