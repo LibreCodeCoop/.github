@@ -1,5 +1,0 @@
-{
-  "name": "Create Nextcloud app release",
-  "description": "Validate release readiness and create an auditable GitHub Release that triggers the App Store publication workflow.",
-  "iconName": "octicon tag"
-}
