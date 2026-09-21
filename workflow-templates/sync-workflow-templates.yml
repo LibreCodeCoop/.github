@@ -9,11 +9,8 @@
 # This workflow will update all workflow templates.
 # Additionally it will reapply workflow.yml.patch files after syncing and only then commit the result.
 #
-# Authentication is explicit through vars.WORKFLOW_SYNC_AUTH_MODE:
-# - librecode-app (default): LibreCode-managed GitHub App credentials
-# - github-app: consumer-owned GitHub App credentials
-# - token: consumer-owned repository-scoped token
-# - github-token: built-in GITHUB_TOKEN (generated PRs do not trigger normal PR workflows)
+# Authentication is selected explicitly with vars.WORKFLOW_SYNC_AUTH_MODE.
+# See docs/cross-repository-automation.md for modes, credentials and GITHUB_TOKEN limitations.
 name: Update workflows
 on:
   workflow_dispatch:
