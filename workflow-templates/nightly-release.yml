@@ -160,22 +160,6 @@ jobs:
           cd "${APP_NAME}"
           krankerl package
 
-      - name: Package with Makefile
-        if: steps.krankerl.outputs.files_exists != 'true'
-        shell: bash
-        run: |
-          cd "${APP_NAME}"
-          make appstore
-
-      - name: Verify app store package
-        if: steps.krankerl.outputs.files_exists != 'true'
-        working-directory: ${{ env.APP_NAME }}
-        shell: bash
-        run: |
-          if make -qp 2>/dev/null | grep -q '^verify-appstore-package:'; then
-            make verify-appstore-package
-          fi
-
       - name: Resolve Nextcloud server download
         id: server-download
         continue-on-error: true
@@ -196,6 +180,22 @@ jobs:
           submodules: true
           repository: nextcloud/server
           path: nextcloud
+
+      - name: Package with Makefile
+        if: steps.krankerl.outputs.files_exists != 'true'
+        shell: bash
+        run: |
+          cd "${APP_NAME}"
+          make appstore
+
+      - name: Verify app store package
+        if: steps.krankerl.outputs.files_exists != 'true'
+        working-directory: ${{ env.APP_NAME }}
+        shell: bash
+        run: |
+          if make -qp 2>/dev/null | grep -q '^verify-appstore-package:'; then
+            make verify-appstore-package
+          fi
 
       - name: Sign app
         shell: bash
