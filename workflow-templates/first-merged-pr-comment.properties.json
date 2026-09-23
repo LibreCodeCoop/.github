@@ -1,0 +1,8 @@
+{
+  "name": "First merged PR comment",
+  "description": "Comment on a contributor's first merged pull request with a repository-defined message template.",
+  "iconName": "octicon comment",
+  "categories": [
+    "Code Review"
+  ]
+}
