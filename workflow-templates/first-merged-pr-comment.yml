@@ -38,11 +38,6 @@ jobs:
     permissions:
       pull-requests: write
 
-    env:
-      FIRST_MERGED_PR_MESSAGE: >-
-        ${{ vars.FIRST_MERGED_PR_MESSAGE ||
-        'Thanks {contributor_mention}! Your first pull request to {repository_name} has been merged.' }}
-
     steps:
       # pull_request_target is intentionally used without checkout. Nothing
       # from the pull request head is downloaded or executed.
@@ -52,4 +47,4 @@ jobs:
           github-token: ${{ github.token }}
           pull-request-number: >-
             ${{ github.event.pull_request.number || inputs.pull_request_number }}
-          message-template: ${{ env.FIRST_MERGED_PR_MESSAGE }}
+          message-template: ${{ vars.FIRST_MERGED_PR_MESSAGE }}
