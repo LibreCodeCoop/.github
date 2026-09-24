@@ -6,11 +6,18 @@ from __future__ import annotations
 
 import argparse
 import json
+import re
 import shutil
 import subprocess
 import tempfile
 from dataclasses import dataclass
 from pathlib import Path
+
+
+ACTION_USE_RE = re.compile(
+    r"^(?P<prefix>\s*uses:\s*)(?P<action>[^@\s]+)@(?P<ref>[0-9a-f]{40})(?P<suffix>\s*(?:#.*)?)$",
+    re.MULTILINE,
+)
 
 
 @dataclass(frozen=True)
@@ -89,14 +96,39 @@ def render(template: Template, root: Path) -> bytes:
         return working.read_bytes()
 
 
+def preserve_action_pins(rendered: bytes, current: bytes | None) -> bytes:
+    if current is None:
+        return rendered
+
+    rendered_text = rendered.decode("utf-8")
+    current_text = current.decode("utf-8")
+
+    current_uses: dict[str, list[str]] = {}
+    for match in ACTION_USE_RE.finditer(current_text):
+        current_uses.setdefault(match.group("action"), []).append(match.group(0))
+
+    offsets: dict[str, int] = {}
+
+    def replace(match: re.Match[str]) -> str:
+        action = match.group("action")
+        index = offsets.get(action, 0)
+        offsets[action] = index + 1
+        candidates = current_uses.get(action, [])
+        if index >= len(candidates):
+            return match.group(0)
+        return candidates[index]
+
+    return ACTION_USE_RE.sub(replace, rendered_text).encode("utf-8")
+
+
 def sync(templates: list[Template], root: Path) -> dict[str, object]:
     results: list[dict[str, object]] = []
 
     for template in templates:
         destination = _safe_path(root, template.destination)
         try:
-            content = render(template, root)
             previous = destination.read_bytes() if destination.is_file() else None
+            content = preserve_action_pins(render(template, root), previous)
             changed = previous != content
             destination.parent.mkdir(parents=True, exist_ok=True)
             destination.write_bytes(content)
@@ -140,7 +172,13 @@ def check(templates: list[Template], root: Path) -> None:
             continue
 
         destination = _safe_path(root, template.destination)
-        if not destination.is_file() or destination.read_bytes() != expected:
+        if not destination.is_file():
+            problems.append(f"{template.name}: rendered template is out of date")
+            continue
+
+        current = destination.read_bytes()
+        expected = preserve_action_pins(expected, current)
+        if current != expected:
             problems.append(f"{template.name}: rendered template is out of date")
 
     if problems:
