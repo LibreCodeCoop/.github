@@ -1,0 +1,19 @@
+--- upstream/vendor/nextcloud/block-unconventional-commits.yml
++++ workflow-templates/block-unconventional-commits.yml
+@@ -1,6 +1,6 @@
+ # This workflow is provided via the organization template repository
+ #
+-# https://github.com/nextcloud/.github
++# https://github.com/LibreCodeCoop/.github
+ # https://docs.github.com/en/actions/learn-github-actions/sharing-workflows-with-your-organization
+ #
+ # SPDX-FileCopyrightText: 2024 Nextcloud GmbH and Nextcloud contributors
+@@ -23,7 +23,7 @@
+   block-unconventional-commits:
+     name: Block unconventional commits
+ 
+-    runs-on: ubuntu-latest-low
++    runs-on: ubuntu-latest
+ 
+     steps:
+       - name: Checkout

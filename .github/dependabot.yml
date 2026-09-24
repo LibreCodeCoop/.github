@@ -16,3 +16,17 @@ updates:
         update-types:
           - minor
           - patch
+
+  - package-ecosystem: github-actions
+    directory: /workflow-templates
+    schedule:
+      interval: weekly
+    cooldown:
+      default-days: 7
+    groups:
+      workflow-template-actions:
+        patterns:
+          - "*"
+        update-types:
+          - minor
+          - patch

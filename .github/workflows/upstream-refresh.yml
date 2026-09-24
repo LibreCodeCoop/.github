@@ -1,0 +1,115 @@
+# SPDX-FileCopyrightText: 2026 LibreCode coop and contributors
+# SPDX-License-Identifier: AGPL-3.0-or-later
+
+name: Refresh upstream workflows
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - main
+    paths:
+      - 'upstream/sources.json'
+      - 'upstream/templates.json'
+      - 'patches/nextcloud/**'
+      - '.github/workflows/upstream-refresh.yml'
+  schedule:
+    - cron: '17 3 * * 0'
+
+permissions:
+  contents: read
+
+jobs:
+  refresh:
+    name: Refresh pinned upstream sources
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      contents: write
+      pull-requests: write
+    steps:
+      - name: Validate GitHub App configuration
+        env:
+          WORKFLOW_APP_ID: ${{ vars.LIBRECODE_WORKFLOW_APP_ID }}
+          WORKFLOW_APP_PRIVATE_KEY: ${{ secrets.LIBRECODE_WORKFLOW_APP_PRIVATE_KEY }}
+        run: |
+          if [ -z "$WORKFLOW_APP_ID" ]; then
+            echo "::error::LIBRECODE_WORKFLOW_APP_ID is not configured."
+            exit 1
+          fi
+          if [ -z "$WORKFLOW_APP_PRIVATE_KEY" ]; then
+            echo "::error::LIBRECODE_WORKFLOW_APP_PRIVATE_KEY is not configured."
+            exit 1
+          fi
+
+      - name: Create GitHub App token
+        id: app-token
+        uses: actions/create-github-app-token@67018539274d69449ef7c02e8e71183d1719ab42 # v2.1.4
+        with:
+          app-id: ${{ vars.LIBRECODE_WORKFLOW_APP_ID }}
+          private-key: ${{ secrets.LIBRECODE_WORKFLOW_APP_PRIVATE_KEY }}
+          owner: LibreCodeCoop
+          repositories: .github
+          permission-contents: write
+          permission-pull-requests: write
+          permission-workflows: write
+
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Refresh upstream pins
+        id: refresh
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+        run: python3 scripts/sync_upstream.py refresh upstream/sources.json
+
+      - name: Verify refreshed immutable sources
+        run: python3 scripts/sync_upstream.py check upstream/sources.json
+
+      - name: Apply downstream patches
+        id: render
+        continue-on-error: true
+        run: |
+          python3 scripts/render_upstream.py sync upstream/templates.json \
+            --report render-report.json
+
+      - name: Run unit tests
+        if: always()
+        run: python3 -m unittest discover -s tests -p 'test_*.py'
+
+      - name: Build pull request report
+        if: steps.refresh.outcome == 'success'
+        run: >-
+          python3 scripts/render_upstream.py pr-body
+          --report render-report.json
+          --output refresh-upstream-pr.md
+
+      - name: Create update pull request
+        id: pull-request
+        if: steps.refresh.outcome == 'success'
+        uses: peter-evans/create-pull-request@5f6978faf089d4d20b00c7766989d076bb2fc7f1 # v8.1.1
+        with:
+          token: ${{ steps.app-token.outputs.token }}
+          commit-message: 'chore: refresh upstream workflow pins'
+          committer: GitHub <noreply@github.com>
+          author: github-actions[bot] <41898282+github-actions[bot]@users.noreply.github.com>
+          signoff: true
+          branch: automated/refresh-upstream-workflows
+          delete-branch: true
+          title: 'chore: refresh upstream workflows'
+          body-path: refresh-upstream-pr.md
+          draft: ${{ steps.render.outcome == 'failure' }}
+          labels: dependencies
+          add-paths: |
+            upstream/sources.json
+            upstream/vendor/**
+            workflow-templates/**
+            .github/workflows/**
+
+      - name: Fail when patches need manual updates
+        if: steps.render.outcome == 'failure'
+        run: |
+          echo "One or more downstream patches could not be applied."
+          exit 1
