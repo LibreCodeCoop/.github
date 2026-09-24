@@ -1,0 +1,28 @@
+--- upstream/vendor/nextcloud/lint-typescript.yml
++++ workflow-templates/lint-typescript.yml
+@@ -1,6 +1,6 @@
+ # This workflow is provided via the organization template repository
+ #
+-# https://github.com/nextcloud/.github
++# https://github.com/LibreCodeCoop/.github
+ # https://docs.github.com/en/actions/learn-github-actions/sharing-workflows-with-your-organization
+ #
+ # SPDX-FileCopyrightText: 2023-2024 Nextcloud GmbH and Nextcloud contributors
+@@ -25,7 +25,7 @@
+ 
+ jobs:
+   changes:
+-    runs-on: ubuntu-latest-low
++    runs-on: ubuntu-latest
+     permissions:
+       contents: read
+       pull-requests: read
+@@ -88,7 +88,7 @@
+   summary:
+     permissions:
+       contents: none
+-    runs-on: ubuntu-latest-low
++    runs-on: ubuntu-latest
+     needs: [changes, test]
+ 
+     if: always()
