@@ -212,7 +212,7 @@
 -          echo "DRAFT_ONLY=${draft_only}" >> $GITHUB_ENV
 +      - name: Synchronize workflow templates
 +        id: sync
-+        uses: LibreCodeCoop/.github/actions/sync-workflows@492e6c7c5a9bb7642f39238583003d2cb93f3ba6 # organization helpers
++        uses: ./source/actions/sync-workflows
 +        with:
 +          source: source/workflow-templates
 +          target: target
