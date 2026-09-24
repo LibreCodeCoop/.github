@@ -151,7 +151,7 @@ def _latest_commit(repository: str, ref: str, path: str, token: str | None) -> s
     )
     headers = {
         "Accept": "application/vnd.github+json",
-        "User-Agent": "github-workflows-sync",
+        "User-Agent": "librecode-workflow-catalog-sync",
         "X-GitHub-Api-Version": "2022-11-28",
     }
     if token:
@@ -174,7 +174,7 @@ def _latest_commit(repository: str, ref: str, path: str, token: str | None) -> s
 
 
 def _download(url: str) -> bytes:
-    request = Request(url, headers={"User-Agent": "github-workflows-sync"})
+    request = Request(url, headers={"User-Agent": "librecode-workflow-catalog-sync"})
     with urlopen(request, timeout=30) as response:
         return response.read()
 
