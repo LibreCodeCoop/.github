@@ -1,0 +1,63 @@
+# SPDX-FileCopyrightText: 2026 LibreCode coop and contributors
+# SPDX-License-Identifier: AGPL-3.0-or-later
+
+name: Sync workflow templates
+description: Synchronize materialized workflow templates into a consumer repository and apply local patches.
+
+inputs:
+  source:
+    description: Directory containing organization workflow templates.
+    required: true
+  target:
+    description: Consumer repository checkout directory.
+    required: true
+  lock-file:
+    description: Lock file path relative to the consumer repository.
+    required: false
+    default: .github/actions-lock.txt
+  catalog-commit:
+    description: Immutable workflow catalog commit being materialized.
+    required: false
+    default: ''
+
+outputs:
+  changed:
+    description: Whether at least one workflow was updated.
+    value: ${{ steps.sync.outputs.changed }}
+  patch_failed:
+    description: Whether at least one local workflow patch failed to apply.
+    value: ${{ steps.sync.outputs.patch_failed }}
+  blocked:
+    description: Whether synchronization was blocked by unmanaged local divergence.
+    value: ${{ steps.sync.outputs.blocked }}
+  updated:
+    description: JSON array of updated workflow names.
+    value: ${{ steps.sync.outputs.updated }}
+  failed:
+    description: JSON array of workflows whose local patch failed.
+    value: ${{ steps.sync.outputs.failed }}
+  summary:
+    description: Markdown summary for the pull request body.
+    value: ${{ steps.sync.outputs.summary }}
+  summary_file:
+    description: Path to the generated Markdown summary file.
+    value: ${{ steps.sync.outputs.summary_file }}
+
+runs:
+  using: composite
+  steps:
+    - name: Synchronize workflows
+      id: sync
+      shell: bash
+      env:
+        SYNC_ACTION_PATH: ${{ github.action_path }}
+        SYNC_SOURCE: ${{ inputs.source }}
+        SYNC_TARGET: ${{ inputs.target }}
+        SYNC_LOCK_FILE: ${{ inputs.lock-file }}
+        SYNC_CATALOG_COMMIT: ${{ inputs.catalog-commit }}
+      run: >-
+        python3 "$SYNC_ACTION_PATH/sync.py"
+        --source "$SYNC_SOURCE"
+        --target "$SYNC_TARGET"
+        --lock-file "$SYNC_LOCK_FILE"
+        --catalog-commit "$SYNC_CATALOG_COMMIT"

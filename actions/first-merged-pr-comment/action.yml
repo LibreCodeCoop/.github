@@ -1,0 +1,45 @@
+# SPDX-FileCopyrightText: 2026 LibreCode coop and contributors
+# SPDX-License-Identifier: AGPL-3.0-or-later
+
+name: First merged PR comment
+description: Comment on a contributor's first merged pull request using a strict message template.
+
+inputs:
+  github-token:
+    description: Token used to inspect merged pull requests and create the comment.
+    required: true
+  message-template:
+    description: Message template rendered with built-in placeholders.
+    required: true
+  pull-request-number:
+    description: Pull request number. Required for manual retries; otherwise read from the event.
+    required: false
+    default: ''
+
+outputs:
+  is-first-merged:
+    description: Whether the pull request is the contributor's first merged pull request.
+    value: ${{ steps.comment.outputs.is-first-merged }}
+  comment-created:
+    description: Whether this invocation created the comment.
+    value: ${{ steps.comment.outputs.comment-created }}
+  contributor-login:
+    description: Contributor login resolved from the pull request.
+    value: ${{ steps.comment.outputs.contributor-login }}
+  pull-request-number:
+    description: Pull request number that was processed.
+    value: ${{ steps.comment.outputs.pull-request-number }}
+
+runs:
+  using: composite
+  steps:
+    - id: comment
+      name: Comment on first merged pull request
+      shell: bash
+      env:
+        FIRST_MERGED_PR_GITHUB_TOKEN: ${{ inputs.github-token }}
+        FIRST_MERGED_PR_MESSAGE_TEMPLATE: ${{ inputs.message-template }}
+        FIRST_MERGED_PR_NUMBER: ${{ inputs.pull-request-number }}
+      run: |
+        set -euo pipefail
+        python3 "${GITHUB_ACTION_PATH}/first_merged_pr_comment.py"
