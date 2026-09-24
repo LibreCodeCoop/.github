@@ -26,6 +26,7 @@ class LockEntry(NamedTuple):
     algorithm: str
     digest: str
     catalog_commit: str = ""
+    legacy_provenance: bool = False
 
     def to_json(self) -> str:
         payload = {
@@ -86,6 +87,9 @@ def parse_lock_records(path: Path) -> dict[str, LockEntry]:
                 algorithm="sha256",
                 digest=digest,
                 catalog_commit=str(payload.get("catalog_commit", "")),
+                legacy_provenance=(
+                    "platform_version" in payload or "source_commit" in payload
+                ),
             )
         else:
             parts = line.split()
