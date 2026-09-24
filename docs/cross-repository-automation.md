@@ -44,6 +44,8 @@ After installation, the updater runs weekly and can also be dispatched manually.
 
 Consumer-specific changes belong in `.github/workflows/<workflow>.patch`. Do not edit a managed workflow directly when the difference should survive synchronization.
 
+The catalog updater targets only the consumer's default branch by default. Projects with maintained long-lived release branches should declare those branches through a consumer-local patch to `sync-workflow-templates.yml`; branch lifecycle is consumer policy and must not be hard-coded in the organization template.
+
 ## Publishing templates
 
 `LibreCodeCoop/.github` is the source of truth for LibreCode-managed workflow templates and the distribution catalog consumed by repository updaters. Templates derived from external upstream sources are refreshed through the pinned upstream/patch pipeline rather than edited as independent downstream implementations.

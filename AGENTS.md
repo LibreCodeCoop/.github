@@ -13,7 +13,7 @@ This repository is the LibreCode Coop organization configuration repository. It 
 
 - `governance.config.json` is the declarative source for LibreCodeCoop repository governance and supported GitHub metadata.
 - The governance engine itself lives in `LibreCodeCoop/github-governance`.
-- Reusable workflow/action implementation lives in `LibreCodeCoop/github-workflows`.
+- Organization workflow templates and helper Actions live in this repository. Product-specific release behavior belongs in its owning product repository, such as `LibreCodeCoop/release-tool`.
 - `workflow-templates/**` is the organization catalog consumed by repositories; do not add product-specific business logic here.
 - Repository-local licenses, README files and `AGENTS.md` stay in their own repositories.
 

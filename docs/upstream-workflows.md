@@ -56,7 +56,7 @@ the renderer returns a structured report containing every failure.
 
 ## Automated refresh
 
-The scheduled `refresh-upstream.yml` workflow:
+The scheduled `upstream-refresh.yml` workflow:
 
 1. resolves each tracked upstream workflow to its latest commit;
 2. updates the immutable URL, SHA-256 and vendored bytes;
@@ -74,7 +74,6 @@ also visible in Actions.
 Failures while resolving, downloading or verifying upstream sources are treated
 as fatal and do not create a partial update pull request.
 
-A dedicated `WORKFLOW_UPDATE_TOKEN` secret is required for pull-request creation.
-Using only the workflow's `GITHUB_TOKEN` would prevent the resulting pull request
-from triggering the normal CI workflows. The refresh itself uses the read-only
-`GITHUB_TOKEN` to resolve public upstream commits.
+Pull-request creation uses a short-lived installation token from the `LibreCode Workflow Automation` GitHub App. Using only the workflow's `GITHUB_TOKEN` would prevent the resulting pull request from triggering the normal CI workflows. The refresh itself uses the read-only `GITHUB_TOKEN` only to resolve public upstream commits.
+
+Action pins in rendered templates are intentionally preserved from the current LibreCode template when the same Action still exists upstream. Dependency version updates are owned by Dependabot in this repository, while the upstream refresh imports structural workflow changes. This keeps upstream tracking and dependency updates independently reviewable.
