@@ -10,8 +10,7 @@ LibreCode distributes managed workflow templates through `LibreCodeCoop/.github`
 ## Flow
 
 ```text
-github-workflows
-    -> LibreCodeCoop/.github catalog
+LibreCodeCoop/.github catalog
     -> consumer sync-workflow-templates.yml
     -> actions/sync-workflows
     -> reviewable consumer pull request
@@ -47,7 +46,7 @@ Consumer-specific changes belong in `.github/workflows/<workflow>.patch`. Do not
 
 ## Publishing templates
 
-`.github` is the source of truth. `LibreCodeCoop/.github` is the distribution catalog, not an editing source.
+`LibreCodeCoop/.github` is the source of truth for LibreCode-managed workflow templates and the distribution catalog consumed by repository updaters. Templates derived from external upstream sources are refreshed through the pinned upstream/patch pipeline rather than edited as independent downstream implementations.
 
 Only templates listed in `workflow-catalog.json` are published. Generated or experimental workflows should not be added to the catalog until they are ready for consumers.
 
