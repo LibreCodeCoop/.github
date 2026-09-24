@@ -56,7 +56,7 @@ the renderer returns a structured report containing every failure.
 
 ## Automated refresh
 
-The scheduled `refresh-upstream.yml` workflow:
+The scheduled `upstream-refresh.yml` workflow:
 
 1. resolves each tracked upstream workflow to its latest commit;
 2. updates the immutable URL, SHA-256 and vendored bytes;
