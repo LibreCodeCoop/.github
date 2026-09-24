@@ -212,12 +212,10 @@
 -          echo "DRAFT_ONLY=${draft_only}" >> $GITHUB_ENV
 +      - name: Synchronize workflow templates
 +        id: sync
-+        uses: LibreCodeCoop/github-workflows/actions/sync-workflows@002f17274ba1eade3351ba81890bf53674b37c43 # v0.4.0
++        uses: LibreCodeCoop/.github/actions/sync-workflows@492e6c7c5a9bb7642f39238583003d2cb93f3ba6 # organization helpers
 +        with:
 +          source: source/workflow-templates
 +          target: target
-+          platform-version: v0.4.0
-+          source-commit: 002f17274ba1eade3351ba81890bf53674b37c43
 +          catalog-commit: ${{ steps.catalog-revision.outputs.sha }}
  
        - name: Create Pull Request
