@@ -70,6 +70,82 @@ class RenderUpstreamTest(unittest.TestCase):
             self.assertEqual(report["updated"], 1)
             self.assertEqual(report["failed"], 0)
 
+    def test_sync_preserves_dependabot_action_pin(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            root, manifest = self.fixture(directory)
+            source = root / "upstream/vendor/example.yml"
+            source.write_text(
+                "name: Example\n\njobs:\n  test:\n    uses: actions/checkout@"
+                + "1" * 40
+                + " # v1\n",
+                encoding="utf-8",
+            )
+            manifest.write_text(
+                json.dumps(
+                    {
+                        "templates": [
+                            {
+                                "name": "example",
+                                "source": "upstream/vendor/example.yml",
+                                "patches": [],
+                                "destination": "workflow-templates/example.yml",
+                            }
+                        ]
+                    }
+                ),
+                encoding="utf-8",
+            )
+            destination = root / "workflow-templates/example.yml"
+            destination.parent.mkdir(parents=True)
+            destination.write_text(
+                "name: Example\n\njobs:\n  test:\n    uses: actions/checkout@"
+                + "2" * 40
+                + " # v2\n",
+                encoding="utf-8",
+            )
+
+            report = sync(load_templates(manifest), root)
+
+            self.assertTrue(report["ok"])
+            self.assertEqual(report["unchanged"], 1)
+            self.assertIn("actions/checkout@" + "2" * 40, destination.read_text())
+
+    def test_check_accepts_only_action_pin_drift(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            root, manifest = self.fixture(directory)
+            source = root / "upstream/vendor/example.yml"
+            source.write_text(
+                "name: Example\n\njobs:\n  test:\n    uses: actions/checkout@"
+                + "1" * 40
+                + " # v1\n",
+                encoding="utf-8",
+            )
+            manifest.write_text(
+                json.dumps(
+                    {
+                        "templates": [
+                            {
+                                "name": "example",
+                                "source": "upstream/vendor/example.yml",
+                                "patches": [],
+                                "destination": "workflow-templates/example.yml",
+                            }
+                        ]
+                    }
+                ),
+                encoding="utf-8",
+            )
+            destination = root / "workflow-templates/example.yml"
+            destination.parent.mkdir(parents=True)
+            destination.write_text(
+                "name: Example\n\njobs:\n  test:\n    uses: actions/checkout@"
+                + "2" * 40
+                + " # v2\n",
+                encoding="utf-8",
+            )
+
+            check(load_templates(manifest), root)
+
     def test_sync_reports_failure_and_continues(self) -> None:
         with tempfile.TemporaryDirectory() as directory:
             root, manifest = self.fixture(directory)
