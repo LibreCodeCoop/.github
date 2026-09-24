@@ -1,0 +1,19 @@
+--- upstream/vendor/nextcloud/lint-info-xml.yml
++++ workflow-templates/lint-info-xml.yml
+@@ -1,6 +1,6 @@
+ # This workflow is provided via the organization template repository
+ #
+-# https://github.com/nextcloud/.github
++# https://github.com/LibreCodeCoop/.github
+ # https://docs.github.com/en/actions/learn-github-actions/sharing-workflows-with-your-organization
+ #
+ # SPDX-FileCopyrightText: 2021-2024 Nextcloud GmbH and Nextcloud contributors
+@@ -19,7 +19,7 @@
+ 
+ jobs:
+   xml-linters:
+-    runs-on: ubuntu-latest-low
++    runs-on: ubuntu-latest
+ 
+     name: info.xml lint
+     steps:
