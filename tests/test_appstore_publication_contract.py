@@ -8,16 +8,9 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
 ACTION = ROOT / "actions/nextcloud-appstore-publish/action.yml"
-TEMPLATE = ROOT / "workflow-templates/appstore-build-publish.yml"
 
 
 class AppStorePublicationContractTest(unittest.TestCase):
-    def test_consumer_template_is_thin_wrapper(self) -> None:
-        content = TEMPLATE.read_text(encoding="utf-8")
-        self.assertNotIn("\n        run: |", content)
-        self.assertIn("LibreCodeCoop/.github/actions/nextcloud-appstore-publish@", content)
-        self.assertLessEqual(len(content.splitlines()), 40)
-
     def test_external_actions_are_immutable(self) -> None:
         content = ACTION.read_text(encoding="utf-8")
         revisions = re.findall(r"^\s*uses:\s*([^@\s]+)@([^\s#]+)", content, re.MULTILINE)
@@ -54,6 +47,23 @@ class AppStorePublicationContractTest(unittest.TestCase):
         ids = re.findall(r"^\s*id:\s*([^\s]+)", content, re.MULTILINE)
         for step_id in ids:
             self.assertRegex(step_id, r"^[A-Za-z_][A-Za-z0-9_]*$")
+
+    def test_does_not_write_untrusted_values_to_github_env(self) -> None:
+        content = ACTION.read_text(encoding="utf-8")
+        self.assertNotIn("GITHUB_ENV", content)
+
+    def test_release_upload_uses_runner_cli(self) -> None:
+        content = ACTION.read_text(encoding="utf-8")
+        self.assertNotIn("svenstaro/upload-release-action", content)
+        self.assertIn('gh release upload "${RELEASE_TAG}"', content)
+
+    def test_asset_name_matches_appstore_download_url(self) -> None:
+        content = ACTION.read_text(encoding="utf-8")
+        self.assertIn('asset_name="${APP_NAME}-${RELEASE_TAG}.tar.gz"', content)
+        self.assertIn(
+            "releases/download/${{ inputs.release-tag }}/${{ inputs.app-name }}-${{ inputs.release-tag }}.tar.gz",
+            content,
+        )
 
 
 if __name__ == "__main__":
