@@ -293,8 +293,11 @@ runs:
         RELEASE_TAG: ${{ inputs.release-tag }}
       run: |
         set -euo pipefail
-        asset="${APP_NAME}/build/artifacts/${APP_NAME}.tar.gz"
-        gh release upload "${RELEASE_TAG}" "${asset}#${APP_NAME}-${RELEASE_TAG}.tar.gz"           --clobber           --repo "${GITHUB_REPOSITORY}"
+        source_asset="${APP_NAME}/build/artifacts/${APP_NAME}.tar.gz"
+        asset_name="${APP_NAME}-${RELEASE_TAG}.tar.gz"
+        publish_asset="${RUNNER_TEMP}/${asset_name}"
+        cp "${source_asset}" "${publish_asset}"
+        gh release upload "${RELEASE_TAG}" "${publish_asset}" --clobber --repo "${GITHUB_REPOSITORY}"
 
     - name: Upload app to Nextcloud App Store
       uses: nextcloud-libraries/nextcloud-appstore-push-action@a011fe619bcf6e77ddebc96f9908e1af4071b9c1 # v1.0.3
