@@ -30,11 +30,11 @@ jobs:
     steps:
       - name: Validate GitHub App configuration
         env:
-          WORKFLOW_APP_ID: ${{ vars.LIBRECODE_WORKFLOW_APP_ID }}
+          WORKFLOW_APP_CLIENT_ID: ${{ vars.LIBRECODE_WORKFLOW_APP_CLIENT_ID }}
           WORKFLOW_APP_PRIVATE_KEY: ${{ secrets.LIBRECODE_WORKFLOW_APP_PRIVATE_KEY }}
         run: |
-          if [ -z "$WORKFLOW_APP_ID" ]; then
-            echo "::error::LIBRECODE_WORKFLOW_APP_ID is not configured."
+          if [ -z "$WORKFLOW_APP_CLIENT_ID" ]; then
+            echo "::error::LIBRECODE_WORKFLOW_APP_CLIENT_ID is not configured."
             exit 1
           fi
           if [ -z "$WORKFLOW_APP_PRIVATE_KEY" ]; then
@@ -46,7 +46,7 @@ jobs:
         id: app-token
         uses: actions/create-github-app-token@bcd2ba49218906704ab6c1aa796996da409d3eb1 # v3.2.0
         with:
-          app-id: ${{ vars.LIBRECODE_WORKFLOW_APP_ID }}
+          client-id: ${{ vars.LIBRECODE_WORKFLOW_APP_CLIENT_ID }}
           private-key: ${{ secrets.LIBRECODE_WORKFLOW_APP_PRIVATE_KEY }}
           owner: LibreCodeCoop
           repositories: .github

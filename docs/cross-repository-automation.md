@@ -22,8 +22,8 @@ The updater manages workflows already installed in the consumer repository. It r
 
 The installed updater selects authentication with the repository variable `WORKFLOW_SYNC_AUTH_MODE`:
 
-- `librecode-app` — LibreCode-managed repositories; uses `LIBRECODE_WORKFLOW_APP_ID` and `LIBRECODE_WORKFLOW_APP_PRIVATE_KEY`.
-- `github-app` — independent consumers; uses `WORKFLOW_SYNC_APP_ID` and `WORKFLOW_SYNC_APP_PRIVATE_KEY`.
+- `librecode-app` — LibreCode-managed repositories; uses `LIBRECODE_WORKFLOW_APP_CLIENT_ID` and `LIBRECODE_WORKFLOW_APP_PRIVATE_KEY`.
+- `github-app` — independent consumers; uses `WORKFLOW_SYNC_APP_CLIENT_ID` and `WORKFLOW_SYNC_APP_PRIVATE_KEY`.
 - `token` — uses `WORKFLOW_SYNC_TOKEN`.
 - `github-token` — uses the workflow `GITHUB_TOKEN`.
 
@@ -56,7 +56,7 @@ Only templates listed in `workflow-catalog.json` are published. Generated or exp
 
 Catalog publication uses the **LibreCode Workflow Automation** GitHub App. Its credentials are stored in `LibreCodeCoop/.github`:
 
-- variable `LIBRECODE_WORKFLOW_APP_ID`;
+- variable `LIBRECODE_WORKFLOW_APP_CLIENT_ID` (GitHub App Client ID);
 - secret `LIBRECODE_WORKFLOW_APP_PRIVATE_KEY`.
 
 Write-capable jobs mint short-lived installation tokens scoped to the destination repository. The private key must never be committed.
