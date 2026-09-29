@@ -8,6 +8,7 @@ on:
     paths:
       - '.github/workflows/**'
       - 'workflow-templates/**'
+      - 'actions/**'
       - 'scripts/check_workflow_policy.py'
       - 'tests/test_workflow_policy.py'
   push:
@@ -16,6 +17,7 @@ on:
     paths:
       - '.github/workflows/**'
       - 'workflow-templates/**'
+      - 'actions/**'
       - 'scripts/check_workflow_policy.py'
       - 'tests/test_workflow_policy.py'
 
