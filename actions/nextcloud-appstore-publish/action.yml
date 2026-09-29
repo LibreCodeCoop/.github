@@ -186,15 +186,15 @@ runs:
       run: |
         set -euo pipefail
         download_url="$(curl --fail --silent --show-error "https://updates.nextcloud.com/updater_server/latest?channel=beta&version=${NC_VERSION}" | jq -r '.downloads.zip[0]')"
-        printf 'download-url=%s\n' "${download_url}" >> "${GITHUB_OUTPUT}"
+        printf 'download_url=%s\n' "${download_url}" >> "${GITHUB_OUTPUT}"
 
     - name: Download Nextcloud server
       id: server_download
-      if: steps.krankerl.outputs.files_exists != 'true' && steps.server_url.outputs.download-url != 'null'
+      if: steps.krankerl.outputs.files_exists != 'true' && steps.server_url.outputs.download_url != 'null'
       continue-on-error: true
       shell: bash
       env:
-        DOWNLOAD_URL: ${{ steps.server_url.outputs.download-url }}
+        DOWNLOAD_URL: ${{ steps.server_url.outputs.download_url }}
       run: |
         set -euo pipefail
         wget "${DOWNLOAD_URL}" -O nextcloud.zip
