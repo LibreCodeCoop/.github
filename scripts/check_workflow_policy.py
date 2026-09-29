@@ -69,7 +69,7 @@ def main() -> int:
         "roots",
         nargs="*",
         type=Path,
-        default=[Path("workflow-templates"), Path(".github/workflows")],
+        default=[Path("workflow-templates"), Path(".github/workflows"), Path("actions")],
     )
     args = parser.parse_args()
 
