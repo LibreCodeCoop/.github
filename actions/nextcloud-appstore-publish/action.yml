@@ -33,14 +33,15 @@ inputs:
     description: Use packaging tooling from the workflow ref while keeping tagged application source immutable.
     required: false
     default: 'false'
-  release-tool-revision:
-    description: Immutable release-tool revision.
-    required: false
-    default: '385ca7732db12e5c79590bb21be8da3608194595'
-
 runs:
   using: composite
   steps:
+    - name: Check actor permission
+      uses: skjnldsv/check-actor-permission@69e92a3c4711150929bca9fcf34448c5bf5526e7 # v3.0
+      with:
+        require: write
+        token: ${{ inputs.github-token }}
+
     - name: Validate inputs
       shell: bash
       env:
@@ -81,7 +82,7 @@ runs:
 
     - name: Validate release identity
       id: release-identity
-      uses: LibreCodeCoop/release-tool/actions/release-identity@${{ inputs.release-tool-revision }}
+      uses: LibreCodeCoop/release-tool/actions/release-identity@385ca7732db12e5c79590bb21be8da3608194595
       with:
         tag: ${{ inputs.release-tag }}
         working-directory: ${{ env.APP_NAME }}
@@ -276,7 +277,7 @@ runs:
         GITHUB_TOKEN: ${{ inputs.github-token }}
 
     - name: Validate release artifact
-      uses: LibreCodeCoop/release-tool/actions/artifact-validate@${{ inputs.release-tool-revision }}
+      uses: LibreCodeCoop/release-tool/actions/artifact-validate@385ca7732db12e5c79590bb21be8da3608194595
       with:
         artifact: ${{ env.APP_NAME }}/build/artifacts/${{ env.APP_NAME }}.tar.gz
         app-name: ${{ env.APP_NAME }}
@@ -301,7 +302,7 @@ runs:
         app_private_key: ${{ inputs.app-private-key }}
 
     - name: Verify App Store publication
-      uses: LibreCodeCoop/release-tool/actions/appstore-publication-wait@${{ inputs.release-tool-revision }}
+      uses: LibreCodeCoop/release-tool/actions/appstore-publication-wait@385ca7732db12e5c79590bb21be8da3608194595
       with:
         app-name: ${{ env.APP_NAME }}
         version: ${{ steps.release-identity.outputs.version }}
