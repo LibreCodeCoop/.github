@@ -97,7 +97,6 @@ runs:
       with:
         path: ${{ inputs.app-name }}
         fallbackNode: '^24'
-        fallbackNpm: '^11.3'
 
     - name: Set up node
       if: ${{ steps.versions.outputs.nodeVersion }}
@@ -105,13 +104,6 @@ runs:
       with:
         node-version: ${{ steps.versions.outputs.nodeVersion }}
         package-manager-cache: false
-
-    - name: Set up npm
-      if: ${{ steps.versions.outputs.npmVersion }}
-      shell: bash
-      env:
-        NPM_VERSION: ${{ steps.versions.outputs.npmVersion }}
-      run: npm i -g "npm@${NPM_VERSION}"
 
     - name: Resolve PHP version
       id: php_versions
