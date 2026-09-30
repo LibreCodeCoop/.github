@@ -16,6 +16,12 @@ SURFACES = (
 
 
 class ReleaseToolPinsTest(unittest.TestCase):
+    def test_prepare_release_keeps_trusted_pipeline_contract(self) -> None:
+        content = (ROOT / "workflow-templates/prepare-release.yml").read_text(encoding="utf-8")
+        self.assertIn("pipeline-reference-ref: refs/remotes/origin/main", content)
+        self.assertIn("post-merge-event: pull_request_target", content)
+        self.assertIn('git fetch --quiet origin "+refs/heads/main:refs/remotes/origin/main"', content)
+
     def test_release_tool_consumers_use_same_release(self) -> None:
         for path in SURFACES:
             content = path.read_text(encoding="utf-8")
