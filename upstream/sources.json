@@ -5,8 +5,8 @@
       "repository": "nextcloud/.github",
       "ref": "master",
       "path": "workflow-templates/appstore-build-publish.yml",
-      "url": "https://raw.githubusercontent.com/nextcloud/.github/fb5f5adee71c8c62b76ec2fb9499261233a5ff6a/workflow-templates/appstore-build-publish.yml",
-      "sha256": "4710d78c576abd1c875d799770f67262988119404d58d379656f5932872fcba8",
+      "url": "https://raw.githubusercontent.com/nextcloud/.github/42804704e35b4f28500f135e60f9c7a0a5c6c07a/workflow-templates/appstore-build-publish.yml",
+      "sha256": "c1838915d6f48072f8594d04e908a1eea0cf100c542c917f2f16143d734a7d11",
       "destination": "upstream/vendor/nextcloud/appstore-build-publish.yml"
     },
     {
@@ -23,8 +23,8 @@
       "repository": "nextcloud/.github",
       "ref": "master",
       "path": "workflow-templates/lint-eslint.yml",
-      "url": "https://raw.githubusercontent.com/nextcloud/.github/74cadeba1fd707e6a7ae193a8659e6834d6dc2c7/workflow-templates/lint-eslint.yml",
-      "sha256": "f26cdca597f39732ebb42adba611633ba2c1249d285366bb0d3281f85df5f8dd",
+      "url": "https://raw.githubusercontent.com/nextcloud/.github/42804704e35b4f28500f135e60f9c7a0a5c6c07a/workflow-templates/lint-eslint.yml",
+      "sha256": "6ebe1e660ea68ac490c51bab8bcbb35109f9037096d53089a636db5eab4d63f6",
       "destination": "upstream/vendor/nextcloud/lint-eslint.yml"
     },
     {
@@ -59,8 +59,8 @@
       "repository": "nextcloud/.github",
       "ref": "master",
       "path": "workflow-templates/lint-stylelint.yml",
-      "url": "https://raw.githubusercontent.com/nextcloud/.github/98dc00f32e5c4b85361a06a40c7f8d7d1c0a38f3/workflow-templates/lint-stylelint.yml",
-      "sha256": "e66e5c0b4ff2cf6741a1891849ea3de8662c77c6d198131e0cf54ab2a82cccf7",
+      "url": "https://raw.githubusercontent.com/nextcloud/.github/42804704e35b4f28500f135e60f9c7a0a5c6c07a/workflow-templates/lint-stylelint.yml",
+      "sha256": "58667560a500d7f0b472f71897768a230bbba20628aba91f59a0888067ff025d",
       "destination": "upstream/vendor/nextcloud/lint-stylelint.yml"
     },
     {
@@ -68,8 +68,8 @@
       "repository": "nextcloud/.github",
       "ref": "master",
       "path": "workflow-templates/lint-typescript.yml",
-      "url": "https://raw.githubusercontent.com/nextcloud/.github/cf6248d5ef28a328cde764daf80bc5fae4705ade/workflow-templates/lint-typescript.yml",
-      "sha256": "2b243e05ff8ac82561a46aab1d485e4a83cf13c939f74b6f978d43ab197ab951",
+      "url": "https://raw.githubusercontent.com/nextcloud/.github/42804704e35b4f28500f135e60f9c7a0a5c6c07a/workflow-templates/lint-typescript.yml",
+      "sha256": "6711f3e18f9c08a8d8f3de851b565846293c5e91eb49d96a11ed8611975ac0b1",
       "destination": "upstream/vendor/nextcloud/lint-typescript.yml"
     },
     {
@@ -77,8 +77,8 @@
       "repository": "nextcloud/.github",
       "ref": "master",
       "path": "workflow-templates/node-test.yml",
-      "url": "https://raw.githubusercontent.com/nextcloud/.github/c98227d65688b6d4ac4018601c352afdc2bc923a/workflow-templates/node-test.yml",
-      "sha256": "34c9d7d812f43a11980e06db37f2f721ebc310d2b5f4b1e127ecf785cb1e95e0",
+      "url": "https://raw.githubusercontent.com/nextcloud/.github/42804704e35b4f28500f135e60f9c7a0a5c6c07a/workflow-templates/node-test.yml",
+      "sha256": "850616dd6832bb4dfffa31485c517c64ba6a4a1be0caa94fa36778d9407f1abc",
       "destination": "upstream/vendor/nextcloud/node-test.yml"
     },
     {
@@ -86,8 +86,8 @@
       "repository": "nextcloud/.github",
       "ref": "master",
       "path": "workflow-templates/npm-build.yml",
-      "url": "https://raw.githubusercontent.com/nextcloud/.github/74cadeba1fd707e6a7ae193a8659e6834d6dc2c7/workflow-templates/npm-build.yml",
-      "sha256": "0004666c0ac21d5c10aee4b5912cac74de16f7d2e4e8d0307429aba4e4d1b838",
+      "url": "https://raw.githubusercontent.com/nextcloud/.github/42804704e35b4f28500f135e60f9c7a0a5c6c07a/workflow-templates/npm-build.yml",
+      "sha256": "fd6f721910d9ee1283570d17b674e140fd91cfdc7c1f06f4339ca5b1dc144121",
       "destination": "upstream/vendor/nextcloud/npm-build.yml"
     },
     {
@@ -95,8 +95,8 @@
       "repository": "nextcloud/.github",
       "ref": "master",
       "path": "workflow-templates/openapi.yml",
-      "url": "https://raw.githubusercontent.com/nextcloud/.github/fb5f5adee71c8c62b76ec2fb9499261233a5ff6a/workflow-templates/openapi.yml",
-      "sha256": "9e83f1409b455532b434f7a753b04e1e81a5e6e2a7e1291620ef443dee21bf5c",
+      "url": "https://raw.githubusercontent.com/nextcloud/.github/42804704e35b4f28500f135e60f9c7a0a5c6c07a/workflow-templates/openapi.yml",
+      "sha256": "1657c25052aefa493b0ebffbb798c88ba07ecafdb8d47ca84331bfbdd65264c4",
       "destination": "upstream/vendor/nextcloud/openapi.yml"
     },
     {
