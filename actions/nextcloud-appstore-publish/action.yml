@@ -86,7 +86,7 @@ runs:
 
     - name: Validate release identity
       id: release_identity
-      uses: LibreCodeCoop/release-tool/actions/release-identity@9b33a67a7b1e37a45b0a3c252370899effcdfdc2
+      uses: LibreCodeCoop/release-tool/actions/release-identity@5524b80559174b15be15afd33da2fbca2980a53c
       with:
         tag: ${{ inputs.release-tag }}
         working-directory: ${{ inputs.app-name }}
@@ -311,7 +311,7 @@ runs:
         GITHUB_TOKEN: ${{ inputs.github-token }}
 
     - name: Validate release artifact
-      uses: LibreCodeCoop/release-tool/actions/artifact-validate@9b33a67a7b1e37a45b0a3c252370899effcdfdc2
+      uses: LibreCodeCoop/release-tool/actions/artifact-validate@5524b80559174b15be15afd33da2fbca2980a53c
       with:
         artifact: ${{ inputs.app-name }}/build/artifacts/${{ inputs.app-name }}.tar.gz
         app-name: ${{ inputs.app-name }}
@@ -340,7 +340,7 @@ runs:
         app_private_key: ${{ inputs.app-private-key }}
 
     - name: Verify App Store publication
-      uses: LibreCodeCoop/release-tool/actions/appstore-publication-wait@9b33a67a7b1e37a45b0a3c252370899effcdfdc2
+      uses: LibreCodeCoop/release-tool/actions/appstore-publication-wait@5524b80559174b15be15afd33da2fbca2980a53c
       with:
         app-name: ${{ inputs.app-name }}
         version: ${{ steps.release_identity.outputs.version }}
