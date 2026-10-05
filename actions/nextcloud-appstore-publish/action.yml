@@ -41,10 +41,19 @@ runs:
   using: composite
   steps:
     - name: Check actor permission
-      uses: skjnldsv/check-actor-permission@69e92a3c4711150929bca9fcf34448c5bf5526e7 # v3.0
-      with:
-        require: write
-        token: ${{ inputs.github-token }}
+      shell: bash
+      env:
+        GH_TOKEN: ${{ inputs.github-token }}
+      run: |
+        set -euo pipefail
+        permission="$(gh api "repos/${GITHUB_REPOSITORY}/collaborators/${GITHUB_ACTOR}/permission" --jq '.permission')"
+        case "${permission}" in
+          admin|maintain|write) ;;
+          *)
+            echo "::error::${GITHUB_ACTOR} has ${permission} permission; write is required."
+            exit 1
+            ;;
+        esac
 
     - name: Validate boolean inputs
       shell: bash
@@ -77,26 +86,57 @@ runs:
 
     - name: Validate release identity
       id: release_identity
-      uses: LibreCodeCoop/release-tool/actions/release-identity@9b33a67a7b1e37a45b0a3c252370899effcdfdc2
+      uses: LibreCodeCoop/release-tool/actions/release-identity@5524b80559174b15be15afd33da2fbca2980a53c
       with:
         tag: ${{ inputs.release-tag }}
         working-directory: ${{ inputs.app-name }}
         require-tag-exists: 'true'
 
-    - name: Get appinfo data
+    - name: Read appinfo compatibility
       id: appinfo
-      uses: skjnldsv/xpath-action@f5b036e9d973f42c86324833fd00be90665fbf77 # v1.0.0
-      with:
-        filename: ${{ inputs.app-name }}/appinfo/info.xml
-        expression: "//info//dependencies//nextcloud/@min-version"
+      shell: bash
+      env:
+        APP_NAME: ${{ inputs.app-name }}
+      run: |
+        set -euo pipefail
+        result="$(python3 - "${APP_NAME}/appinfo/info.xml" <<'PY'
+        import json
+        import sys
+        import xml.etree.ElementTree as ET
+
+        root = ET.parse(sys.argv[1]).getroot()
+        nextcloud = root.find("./dependencies/nextcloud")
+        if nextcloud is None:
+            raise SystemExit("appinfo/info.xml has no dependencies/nextcloud element")
+        minimum = nextcloud.get("min-version")
+        if not minimum:
+            raise SystemExit("appinfo/info.xml has no Nextcloud min-version")
+        print(json.dumps({"nextcloud": {"min-version": minimum}}, separators=(",", ":")))
+        PY
+        )"
+        printf 'result=%s\n' "${result}" >> "${GITHUB_OUTPUT}"
 
     - name: Read package engines
       id: versions
-      continue-on-error: true
-      uses: skjnldsv/read-package-engines-version-actions@06d6baf7d8f41934ab630e97d9e6c0bc9c9ac5e4 # v3
-      with:
-        path: ${{ inputs.app-name }}
-        fallbackNode: '^24'
+      shell: bash
+      env:
+        APP_NAME: ${{ inputs.app-name }}
+      run: |
+        set -euo pipefail
+        node_version="$(python3 - "${APP_NAME}/package.json" <<'PY'
+        import json
+        import pathlib
+        import sys
+
+        path = pathlib.Path(sys.argv[1])
+        if not path.is_file():
+            print("^24")
+            raise SystemExit(0)
+        package = json.loads(path.read_text())
+        print(package.get("engines", {}).get("node") or "^24")
+        PY
+        )"
+        printf 'nodeVersion=%s\n' "${node_version}" >> "${GITHUB_OUTPUT"
 
     - name: Set up node
       if: ${{ steps.versions.outputs.nodeVersion }}
@@ -271,7 +311,7 @@ runs:
         GITHUB_TOKEN: ${{ inputs.github-token }}
 
     - name: Validate release artifact
-      uses: LibreCodeCoop/release-tool/actions/artifact-validate@9b33a67a7b1e37a45b0a3c252370899effcdfdc2
+      uses: LibreCodeCoop/release-tool/actions/artifact-validate@5524b80559174b15be15afd33da2fbca2980a53c
       with:
         artifact: ${{ inputs.app-name }}/build/artifacts/${{ inputs.app-name }}.tar.gz
         app-name: ${{ inputs.app-name }}
@@ -300,7 +340,7 @@ runs:
         app_private_key: ${{ inputs.app-private-key }}
 
     - name: Verify App Store publication
-      uses: LibreCodeCoop/release-tool/actions/appstore-publication-wait@9b33a67a7b1e37a45b0a3c252370899effcdfdc2
+      uses: LibreCodeCoop/release-tool/actions/appstore-publication-wait@5524b80559174b15be15afd33da2fbca2980a53c
       with:
         app-name: ${{ inputs.app-name }}
         version: ${{ steps.release_identity.outputs.version }}

@@ -4,14 +4,8 @@
 name: Nightly release
 
 on:
-  push:
-    branches:
-      - 'stable*'
-    paths:
-      - '**'
-      - '!**.md'
-      - '!.github/**'
-      - '.github/workflows/nightly-release.yml'
+  schedule:
+    - cron: '17 3 * * *'
   workflow_dispatch:
 
 permissions:
@@ -19,12 +13,12 @@ permissions:
   pull-requests: read
 
 concurrency:
-  group: nightly-release-${{ github.repository }}-${{ github.ref_name }}
+  group: nightly-release-${{ github.repository }}
   cancel-in-progress: true
 
 jobs:
-  check-latest-stable:
-    name: Check latest stable
+  resolve-latest-stable:
+    name: Resolve latest stable
     runs-on: ubuntu-latest
     outputs:
       is-latest: ${{ steps.stable.outputs.is-latest }}
@@ -35,63 +29,84 @@ jobs:
     steps:
       - id: stable
         name: Resolve stable release line
-        uses: LibreCodeCoop/release-tool/actions/stable-select@9b33a67a7b1e37a45b0a3c252370899effcdfdc2
+        uses: LibreCodeCoop/release-tool/actions/stable-select@5524b80559174b15be15afd33da2fbca2980a53c
         with:
           github-token: ${{ github.token }}
 
   nightly-release:
     name: Build and publish nightly
-    needs: check-latest-stable
-    if: needs.check-latest-stable.outputs.is-latest == 'true'
+    needs: resolve-latest-stable
     runs-on: ubuntu-latest
     timeout-minutes: 30
 
     steps:
-      - name: Check actor permission
-        uses: skjnldsv/check-actor-permission@69e92a3c4711150929bca9fcf34448c5bf5526e7 # v3.0
-        with:
-          require: write
-
       - name: Set app environment
         shell: bash
         run: echo "APP_NAME=${GITHUB_REPOSITORY##*/}" >> "${GITHUB_ENV}"
 
-      - name: Checkout
+      - name: Checkout latest stable
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
           fetch-depth: 0
           submodules: true
+          ref: ${{ needs.resolve-latest-stable.outputs.latest-branch }}
           path: ${{ env.APP_NAME }}
 
-      - name: Get app version number
-        id: app-version
-        uses: skjnldsv/xpath-action@f5b036e9d973f42c86324833fd00be90665fbf77 # v1.0.0
-        with:
-          filename: ${{ env.APP_NAME }}/appinfo/info.xml
-          expression: "//info//version/text()"
+      - name: Resolve checked out commit
+        id: source
+        working-directory: ${{ env.APP_NAME }}
+        shell: bash
+        run: echo "sha=$(git rev-parse HEAD)" >> "${GITHUB_OUTPUT}"
+
+      - name: Read app metadata
+        id: appinfo
+        shell: bash
+        env:
+          APP_NAME: ${{ env.APP_NAME }}
+        run: |
+          set -euo pipefail
+          python3 - "${APP_NAME}/appinfo/info.xml" "${GITHUB_OUTPUT}" <<'PY'
+          import sys
+          import xml.etree.ElementTree as ET
+
+          root = ET.parse(sys.argv[1]).getroot()
+          version = root.findtext("version")
+          nextcloud = root.find("./dependencies/nextcloud")
+          minimum = None if nextcloud is None else nextcloud.get("min-version")
+          if not version or not minimum:
+              raise SystemExit("appinfo/info.xml is missing version or Nextcloud min-version")
+          with open(sys.argv[2], "a", encoding="utf-8") as output:
+              output.write(f"version={version}\n")
+              output.write(f"nextcloud_min={minimum}\n")
+          PY
 
       - name: Set app version
         shell: bash
         env:
-          APP_VERSION: ${{ fromJSON(steps.app-version.outputs.result).version }}
+          APP_VERSION: ${{ steps.appinfo.outputs.version }}
         run: echo "APP_VERSION=${APP_VERSION}" >> "${GITHUB_ENV}"
-
-      - name: Get appinfo data
-        id: appinfo
-        uses: skjnldsv/xpath-action@f5b036e9d973f42c86324833fd00be90665fbf77 # v1.0.0
-        with:
-          filename: ${{ env.APP_NAME }}/appinfo/info.xml
-          expression: "//info//dependencies//nextcloud/@min-version"
 
       - name: Read package.json node and npm engines version
         id: versions
-        uses: skjnldsv/read-package-engines-version-actions@06d6baf7d8f41934ab630e97d9e6c0bc9c9ac5e4 # v3
-        continue-on-error: true
-        with:
-          path: ${{ env.APP_NAME }}
-          fallbackNode: '^24'
-          fallbackNpm: '^11.3'
+        shell: bash
+        env:
+          APP_NAME: ${{ env.APP_NAME }}
+        run: |
+          set -euo pipefail
+          python3 - "${APP_NAME}/package.json" "${GITHUB_OUTPUT}" <<'PY'
+          import json
+          import pathlib
+          import sys
+
+          path = pathlib.Path(sys.argv[1])
+          engines = {}
+          if path.is_file():
+              engines = json.loads(path.read_text()).get("engines", {})
+          with open(sys.argv[2], "a", encoding="utf-8") as output:
+              output.write(f"nodeVersion={engines.get('node') or '^24'}\n")
+              output.write(f"npmVersion={engines.get('npm') or '^11.3'}\n")
+          PY
 
       - name: Set up node ${{ steps.versions.outputs.nodeVersion }}
         if: steps.versions.outputs.nodeVersion
@@ -168,7 +183,7 @@ jobs:
         continue-on-error: true
         shell: bash
         env:
-          NEXTCLOUD_VERSION: ${{ fromJSON(steps.appinfo.outputs.result).nextcloud.min-version }}
+          NEXTCLOUD_VERSION: ${{ steps.appinfo.outputs.nextcloud_min }}
         run: |
           download_url="$(curl -fsSL "https://updates.nextcloud.com/updater_server/latest?channel=beta&version=${NEXTCLOUD_VERSION}" | jq -r '.downloads.zip[0]')"
           test -n "${download_url}" && test "${download_url}" != "null"
@@ -215,7 +230,7 @@ jobs:
           tar -zcf "${APP_NAME}.tar.gz" "${APP_NAME}"
 
       - name: Validate release artifact
-        uses: LibreCodeCoop/release-tool/actions/artifact-validate@9b33a67a7b1e37a45b0a3c252370899effcdfdc2
+        uses: LibreCodeCoop/release-tool/actions/artifact-validate@5524b80559174b15be15afd33da2fbca2980a53c
         with:
           artifact: ${{ env.APP_NAME }}/build/artifacts/${{ env.APP_NAME }}.tar.gz
           app-name: ${{ env.APP_NAME }}
@@ -226,7 +241,7 @@ jobs:
         shell: bash
         run: |
           echo "tag=nightly" >> "${GITHUB_OUTPUT}"
-          echo "branch=${{ needs.check-latest-stable.outputs.current-branch }}" >> "${GITHUB_OUTPUT}"
+          echo "branch=${{ needs.resolve-latest-stable.outputs.latest-branch }}" >> "${GITHUB_OUTPUT}"
 
       - name: Move nightly tag to this commit
         shell: bash
@@ -234,14 +249,14 @@ jobs:
           GH_TOKEN: ${{ github.token }}
         run: |
           if gh api "repos/${GITHUB_REPOSITORY}/git/ref/tags/nightly" >/dev/null 2>&1; then
-            gh api --method PATCH "repos/${GITHUB_REPOSITORY}/git/refs/tags/nightly"               -f sha="${GITHUB_SHA}"               -F force=true >/dev/null
+            gh api --method PATCH "repos/${GITHUB_REPOSITORY}/git/refs/tags/nightly"               -f sha="${{ steps.source.outputs.sha }}"               -F force=true >/dev/null
           else
-            gh api --method POST "repos/${GITHUB_REPOSITORY}/git/refs"               -f ref='refs/tags/nightly'               -f sha="${GITHUB_SHA}" >/dev/null
+            gh api --method POST "repos/${GITHUB_REPOSITORY}/git/refs"               -f ref='refs/tags/nightly'               -f sha="${{ steps.source.outputs.sha }}" >/dev/null
           fi
 
       - name: Build nightly change list
         id: release-note-changes
-        uses: LibreCodeCoop/release-tool/actions/release-notes@9b33a67a7b1e37a45b0a3c252370899effcdfdc2
+        uses: LibreCodeCoop/release-tool/actions/release-notes@5524b80559174b15be15afd33da2fbca2980a53c
         with:
           repository: ${{ github.repository }}
           branch: ${{ steps.nightly.outputs.branch }}
@@ -267,7 +282,8 @@ jobs:
             cat "${CHANGES_FILE}"
             echo
             echo "---"
-            printf 'Generated from commit `%s`.\n' "${GITHUB_SHA:0:7}"
+            source_sha='${{ steps.source.outputs.sha }}'
+            printf 'Generated from commit `%s`.\n' "${source_sha:0:7}"
           } > release-notes.md
 
       - name: Create or update GitHub release
