@@ -45,6 +45,8 @@ on:
         type: boolean
   pull_request_target:
     types: [closed]
+    paths-ignore:
+      - 'docs/changelogs/**'
   release:
     types: [published]
 
