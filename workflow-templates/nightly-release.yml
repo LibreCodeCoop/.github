@@ -78,7 +78,7 @@ jobs:
               raise SystemExit("appinfo/info.xml is missing version or Nextcloud min-version")
           with open(sys.argv[2], "a", encoding="utf-8") as output:
               output.write(f"version={version}\n")
-              output.write(f"nextcloud-min={minimum}\n")
+              output.write(f"nextcloud_min={minimum}\n")
           PY
 
       - name: Set app version
@@ -183,7 +183,7 @@ jobs:
         continue-on-error: true
         shell: bash
         env:
-          NEXTCLOUD_VERSION: ${{ steps.appinfo.outputs.nextcloud-min }}
+          NEXTCLOUD_VERSION: ${{ steps.appinfo.outputs.nextcloud_min }}
         run: |
           download_url="$(curl -fsSL "https://updates.nextcloud.com/updater_server/latest?channel=beta&version=${NEXTCLOUD_VERSION}" | jq -r '.downloads.zip[0]')"
           test -n "${download_url}" && test "${download_url}" != "null"
