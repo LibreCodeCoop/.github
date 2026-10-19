@@ -1,44 +1,34 @@
 --- upstream/vendor/nextcloud/appstore-build-publish.yml
 +++ workflow-templates/appstore-build-publish.yml
-@@ -1,9 +1,9 @@
- # This workflow is provided via the organization template repository
- #
+@@ -1,200 +1,36 @@
+-# This workflow is provided via the organization template repository
+-#
 -# https://github.com/nextcloud/.github
-+# https://github.com/LibreCodeCoop/.github
- # https://docs.github.com/en/actions/learn-github-actions/sharing-workflows-with-your-organization
- #
+-# https://docs.github.com/en/actions/learn-github-actions/sharing-workflows-with-your-organization
+-#
 -# SPDX-FileCopyrightText: 2021-2024 Nextcloud GmbH and Nextcloud contributors
-+# SPDX-FileCopyrightText: 2021-2026 Nextcloud GmbH, LibreCode coop and contributors
- # SPDX-License-Identifier: MIT
- 
- name: Build and publish app release
-@@ -11,6 +11,12 @@
- on:
-   release:
-     types: [published]
-+  workflow_dispatch:
-+    inputs:
-+      release_tag:
-+        description: Existing release tag to build and publish.
-+        required: true
-+        type: string
- 
- permissions:
-   contents: write
-@@ -18,183 +24,13 @@
- jobs:
-   build_and_publish:
-     runs-on: ubuntu-latest
+-# SPDX-License-Identifier: MIT
+-
+-name: Build and publish app release
+-
+-on:
+-  release:
+-    types: [published]
+-
+-permissions:
+-  contents: write
+-
+-jobs:
+-  build_and_publish:
+-    runs-on: ubuntu-latest
 -
 -    # Only allowed to be run on nextcloud-releases repositories
 -    if: ${{ github.repository_owner == 'nextcloud-releases' }}
 -
-     steps:
+-    steps:
 -      - name: Check actor permission
 -        uses: skjnldsv/check-actor-permission@69e92a3c4711150929bca9fcf34448c5bf5526e7 # v3.0
-+      - name: Build and publish release
-+        uses: LibreCodeCoop/.github/actions/nextcloud-appstore-publish@600b84354bdbb2da4fc32e9d4eecac1fcce60666
-         with:
+-        with:
 -          require: write
 -
 -      - name: Set app env
@@ -211,6 +201,36 @@
 -          appstore_token: ${{ secrets.APPSTORE_TOKEN }}
 -          download_url: ${{ steps.attach_to_release.outputs.browser_download_url }}
 -          app_private_key: ${{ secrets.APP_PRIVATE_KEY }}
++# This workflow is provided via the organization template repository
++#
++# https://github.com/LibreCodeCoop/.github
++# https://docs.github.com/en/actions/learn-github-actions/sharing-workflows-with-your-organization
++#
++# SPDX-FileCopyrightText: 2021-2026 Nextcloud GmbH, LibreCode coop and contributors
++# SPDX-License-Identifier: MIT
++
++name: Build and publish app release
++
++on:
++  release:
++    types: [published]
++  workflow_dispatch:
++    inputs:
++      release_tag:
++        description: Existing release tag to build and publish.
++        required: true
++        type: string
++
++permissions:
++  contents: write
++
++jobs:
++  build_and_publish:
++    runs-on: ubuntu-latest
++    steps:
++      - name: Build and publish release
++        uses: LibreCodeCoop/.github/actions/nextcloud-appstore-publish@600b84354bdbb2da4fc32e9d4eecac1fcce60666
++        with:
 +          app-name: ${{ github.event.repository.name }}
 +          release-tag: ${{ github.event_name == 'workflow_dispatch' && inputs.release_tag || github.event.release.tag_name }}
 +          github-token: ${{ secrets.GITHUB_TOKEN }}
