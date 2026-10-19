@@ -1,6 +1,7 @@
 # SPDX-FileCopyrightText: 2026 LibreCode coop and contributors
 # SPDX-License-Identifier: AGPL-3.0-or-later
 
+import json
 import re
 import unittest
 from pathlib import Path
@@ -12,6 +13,17 @@ TEMPLATE = ROOT / "workflow-templates/appstore-build-publish.yml"
 
 
 class AppStorePublicationContractTest(unittest.TestCase):
+    def test_owned_template_is_not_regenerated_from_upstream(self) -> None:
+        manifest = json.loads((ROOT / "upstream/templates.json").read_text(encoding="utf-8"))
+        managed = {item["destination"] for item in manifest["templates"]}
+        self.assertNotIn("workflow-templates/appstore-build-publish.yml", managed)
+        self.assertFalse((ROOT / "patches/nextcloud/appstore-build-publish.yml.patch").exists())
+        upstream = json.loads((ROOT / "upstream/sources.json").read_text(encoding="utf-8"))
+        self.assertTrue(any(
+            source["destination"] == "upstream/vendor/nextcloud/appstore-build-publish.yml"
+            for source in upstream["sources"]
+        ))
+
     def test_consumer_template_is_thin_wrapper(self) -> None:
         content = TEMPLATE.read_text(encoding="utf-8")
         self.assertIn("LibreCodeCoop/.github/actions/nextcloud-appstore-publish@600b84354bdbb2da4fc32e9d4eecac1fcce60666", content)
