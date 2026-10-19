@@ -5,14 +5,6 @@ name: Refresh upstream workflows
 
 on:
   workflow_dispatch:
-  push:
-    branches:
-      - main
-    paths:
-      - 'upstream/sources.json'
-      - 'upstream/templates.json'
-      - 'patches/nextcloud/**'
-      - '.github/workflows/upstream-refresh.yml'
   schedule:
     - cron: '17 3 * * 0'
 

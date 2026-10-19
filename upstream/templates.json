@@ -1,14 +1,6 @@
 {
   "templates": [
     {
-      "name": "nextcloud-appstore-build-publish",
-      "source": "upstream/vendor/nextcloud/appstore-build-publish.yml",
-      "patches": [
-        "patches/nextcloud/appstore-build-publish.yml.patch"
-      ],
-      "destination": "workflow-templates/appstore-build-publish.yml"
-    },
-    {
       "name": "nextcloud-block-unconventional-commits",
       "source": "upstream/vendor/nextcloud/block-unconventional-commits.yml",
       "patches": [
