@@ -20,7 +20,8 @@
       "name": "nextcloud-lint-eslint",
       "source": "upstream/vendor/nextcloud/lint-eslint.yml",
       "patches": [
-        "patches/nextcloud/lint-eslint.yml.patch"
+        "patches/nextcloud/lint-eslint.yml.patch",
+        "patches/nextcloud/node-npm-engine-defaults.yml.patch"
       ],
       "destination": "workflow-templates/lint-eslint.yml"
     },
@@ -52,7 +53,8 @@
       "name": "nextcloud-lint-stylelint",
       "source": "upstream/vendor/nextcloud/lint-stylelint.yml",
       "patches": [
-        "patches/nextcloud/lint-stylelint.yml.patch"
+        "patches/nextcloud/lint-stylelint.yml.patch",
+        "patches/nextcloud/node-npm-engine-defaults.yml.patch"
       ],
       "destination": "workflow-templates/lint-stylelint.yml"
     },
@@ -60,7 +62,8 @@
       "name": "nextcloud-lint-typescript",
       "source": "upstream/vendor/nextcloud/lint-typescript.yml",
       "patches": [
-        "patches/nextcloud/lint-typescript.yml.patch"
+        "patches/nextcloud/lint-typescript.yml.patch",
+        "patches/nextcloud/node-npm-engine-defaults.yml.patch"
       ],
       "destination": "workflow-templates/lint-typescript.yml"
     },
@@ -68,7 +71,8 @@
       "name": "nextcloud-node-test",
       "source": "upstream/vendor/nextcloud/node-test.yml",
       "patches": [
-        "patches/nextcloud/node-test.yml.patch"
+        "patches/nextcloud/node-test.yml.patch",
+        "patches/nextcloud/node-npm-engine-defaults.yml.patch"
       ],
       "destination": "workflow-templates/node-test.yml"
     },
@@ -76,7 +80,8 @@
       "name": "nextcloud-npm-build",
       "source": "upstream/vendor/nextcloud/npm-build.yml",
       "patches": [
-        "patches/nextcloud/npm-build.yml.patch"
+        "patches/nextcloud/npm-build.yml.patch",
+        "patches/nextcloud/node-npm-engine-defaults.yml.patch"
       ],
       "destination": "workflow-templates/npm-build.yml"
     },

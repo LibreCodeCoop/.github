@@ -269,6 +269,33 @@ class RenderUpstreamTest(unittest.TestCase):
             with self.assertRaisesRegex(ValueError, "unsafe path"):
                 load_templates(manifest)
 
+    def test_node_npm_workflows_preserve_fallbacks(self) -> None:
+        root = Path(__file__).resolve().parents[1]
+        managed = [
+            ("lint-eslint", "versions"),
+            ("lint-stylelint", "versions"),
+            ("lint-typescript", "versions"),
+            ("node-test", "versions"),
+            ("npm-build", "versions"),
+            ("openapi", "node_versions"),
+        ]
+        for name, step in managed:
+            with self.subTest(workflow=name):
+                content = (root / f"workflow-templates/{name}.yml").read_text()
+                self.assertIn(
+                    f"node-version: ${{{{ steps.{step}.outputs.node-version || '^24' }}}}",
+                    content,
+                )
+                self.assertIn(
+                    f"NPM_VERSION: ${{{{ steps.{step}.outputs.package-manager-name == 'npm' && steps.{step}.outputs.package-manager-version || '^11.3' }}}}",
+                    content,
+                )
+                self.assertIn('run: npm i -g "npm@${NPM_VERSION}"', content)
+                self.assertNotIn(
+                    f"npm@${{{{ steps.{step}.outputs.package-manager-version }}}}'",
+                    content,
+                )
+
     def test_render_pull_request_body_for_successful_report(self) -> None:
         body = render_pull_request_body(
             {
