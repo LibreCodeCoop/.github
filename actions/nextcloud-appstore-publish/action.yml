@@ -41,10 +41,12 @@ runs:
   using: composite
   steps:
     - name: Check actor permission
-      uses: skjnldsv/check-actor-permission@69e92a3c4711150929bca9fcf34448c5bf5526e7 # v3.0
+      uses: LibreCodeCoop/release-tool/actions/authorization-check@30ba5d8a33089331d829f586546d34cd45a529d7
       with:
-        require: write
-        token: ${{ inputs.github-token }}
+        github-token: ${{ inputs.github-token }}
+        repository: ${{ github.repository }}
+        actor: ${{ github.actor }}
+        minimum: write
 
     - name: Validate boolean inputs
       shell: bash
@@ -77,32 +79,23 @@ runs:
 
     - name: Validate release identity
       id: release_identity
-      uses: LibreCodeCoop/release-tool/actions/release-identity@9b33a67a7b1e37a45b0a3c252370899effcdfdc2
+      uses: LibreCodeCoop/release-tool/actions/release-identity@30ba5d8a33089331d829f586546d34cd45a529d7
       with:
         tag: ${{ inputs.release-tag }}
         working-directory: ${{ inputs.app-name }}
         require-tag-exists: 'true'
 
-    - name: Get appinfo data
-      id: appinfo
-      uses: skjnldsv/xpath-action@f5b036e9d973f42c86324833fd00be90665fbf77 # v1.0.0
+    - name: Inspect application build metadata
+      id: build_metadata
+      uses: LibreCodeCoop/release-tool/actions/build-inspect@30ba5d8a33089331d829f586546d34cd45a529d7
       with:
-        filename: ${{ inputs.app-name }}/appinfo/info.xml
-        expression: "//info//dependencies//nextcloud/@min-version"
-
-    - name: Read package engines
-      id: versions
-      continue-on-error: true
-      uses: skjnldsv/read-package-engines-version-actions@06d6baf7d8f41934ab630e97d9e6c0bc9c9ac5e4 # v3
-      with:
-        path: ${{ inputs.app-name }}
-        fallbackNode: '^24'
+        root: ${{ inputs.app-name }}
 
     - name: Set up node
-      if: ${{ steps.versions.outputs.nodeVersion }}
+      if: steps.build_metadata.outputs.has-package-json == 'true'
       uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
       with:
-        node-version: ${{ steps.versions.outputs.nodeVersion }}
+        node-version: ${{ steps.build_metadata.outputs.node-version }}
         package-manager-cache: false
 
     - name: Resolve PHP version
@@ -134,7 +127,7 @@ runs:
         ignore-cache: 'yes'
 
     - name: Build application
-      if: ${{ steps.versions.outputs.nodeVersion }}
+      if: steps.build_metadata.outputs.has-package-json == 'true'
       shell: bash
       env:
         APP_NAME: ${{ inputs.app-name }}
@@ -174,7 +167,7 @@ runs:
       if: steps.krankerl.outputs.files_exists != 'true'
       shell: bash
       env:
-        NC_VERSION: ${{ fromJSON(steps.appinfo.outputs.result).nextcloud.min-version }}
+        NC_VERSION: ${{ steps.build_metadata.outputs.nextcloud-min-version }}
       run: |
         set -euo pipefail
         download_url="$(curl --fail --silent --show-error "https://updates.nextcloud.com/updater_server/latest?channel=beta&version=${NC_VERSION}" | jq -r '.downloads.zip[0]')"
@@ -263,7 +256,7 @@ runs:
         tar -zcvf "${APP_NAME}.tar.gz" "${APP_NAME}"
 
     - name: Set up PHP 8.3 for release-tool
-      uses: shivammathur/setup-php@f3e473d116dcccaddc5834248c87452386958240 # v2.37.2
+      uses: shivammathur/setup-php@f3e473d116dcccaddc5834248c87452386958240 # 2.37.2
       with:
         php-version: '8.3'
         coverage: none
@@ -271,7 +264,7 @@ runs:
         GITHUB_TOKEN: ${{ inputs.github-token }}
 
     - name: Validate release artifact
-      uses: LibreCodeCoop/release-tool/actions/artifact-validate@9b33a67a7b1e37a45b0a3c252370899effcdfdc2
+      uses: LibreCodeCoop/release-tool/actions/artifact-validate@30ba5d8a33089331d829f586546d34cd45a529d7
       with:
         artifact: ${{ inputs.app-name }}/build/artifacts/${{ inputs.app-name }}.tar.gz
         app-name: ${{ inputs.app-name }}
@@ -300,8 +293,8 @@ runs:
         app_private_key: ${{ inputs.app-private-key }}
 
     - name: Verify App Store publication
-      uses: LibreCodeCoop/release-tool/actions/appstore-publication-wait@9b33a67a7b1e37a45b0a3c252370899effcdfdc2
+      uses: LibreCodeCoop/release-tool/actions/appstore-publication-wait@30ba5d8a33089331d829f586546d34cd45a529d7
       with:
         app-name: ${{ inputs.app-name }}
         version: ${{ steps.release_identity.outputs.version }}
-        platform: ${{ fromJSON(steps.appinfo.outputs.result).nextcloud.min-version }}
+        platform: ${{ steps.build_metadata.outputs.nextcloud-min-version }}
