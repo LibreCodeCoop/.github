@@ -20,6 +20,11 @@
  name: Update workflows
  on:
    workflow_dispatch:
+@@ -14,3 +17,3 @@
+   schedule:
+-      - cron: "45 22 * * 6"
++      - cron: "5 2 * * 0"
+ 
 @@ -26,9 +29,6 @@
        matrix:
          branches:
@@ -157,10 +162,34 @@
  
        - name: Checkout app
          uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-@@ -56,86 +163,31 @@
+@@ -56,112 +163,31 @@
            path: target
            ref: ${{ matrix.branches }}
  
+-      - name: Check for active merge freeze
+-        id: freeze
+-        env:
+-          BRANCH_NAME: ${{ matrix.branches }}
+-        run: |
+-          if [[ ! -f target/.github/workflows/block-merge-freeze.yml ]]; then
+-            echo 'No block-merge-freeze workflow, continuing'
+-            exit 0
+-          fi
+-          if [[ "$BRANCH_NAME" == 'main' || "$BRANCH_NAME" == 'master' ]]; then
+-            SERVER_REF='master'
+-          elif [[ "$BRANCH_NAME" =~ ^stable[0-9]+$ ]]; then
+-            SERVER_REF="$BRANCH_NAME"
+-          else
+-            echo 'Not based on master/main/stable*, so skipping freeze check'
+-            exit 0
+-          fi
+-          curl -sf "https://raw.githubusercontent.com/nextcloud/server/$SERVER_REF/version.php" --output version.php
+-          if grep 'OC_VersionString' version.php | grep -q -i -E '(\.0\.0 RC[3-9]|\.[1-9][0-9]* RC)'; then
+-            echo "Merge freeze is active for $SERVER_REF, skipping"
+-            echo 'active=true' >> $GITHUB_OUTPUT
+-          fi
+-          rm version.php
+-
 +      - name: Synchronize workflow templates
 +        id: sync
 +        uses: ./source/actions/sync-workflows
@@ -169,6 +198,7 @@
 +          target: target
 +          catalog-commit: ${{ steps.catalog-revision.outputs.sha }}
 -      - name: Copy all workflow templates
+-        if: steps.freeze.outputs.active != 'true'
 -        run: |
 -          echo 'SUMMARY<<EOF' >> $GITHUB_ENV
 -          draft_only=0
@@ -233,6 +263,7 @@
 -          echo "DRAFT_ONLY=${draft_only}" >> $GITHUB_ENV
 -
        - name: Create Pull Request
+-        if: steps.freeze.outputs.active != 'true'
 +        if: ${{ steps.sync.outputs.changed == 'true' }}
          uses: peter-evans/create-pull-request@5f6978faf089d4d20b00c7766989d076bb2fc7f1 # v8.1.1
          with:

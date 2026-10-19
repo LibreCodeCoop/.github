@@ -1,0 +1,16 @@
+# SPDX-FileCopyrightText: 2026 LibreCode coop and contributors
+# SPDX-License-Identifier: AGPL-3.0-or-later
+
+--- upstream/vendor/nextcloud/workflow.yml
++++ workflow-templates/workflow.yml
+@@ -69,6 +69,8 @@
+         with:
+-          node-version: ${{ steps.versions.outputs.node-version }}
++          node-version: ${{ steps.versions.outputs.node-version || '^24' }}
+ 
+       - name: Set up npm ${{ steps.versions.outputs.package-manager-version }}
+-        run: npm i -g 'npm@${{ steps.versions.outputs.package-manager-version }}'
++        env:
++          NPM_VERSION: ${{ steps.versions.outputs.package-manager-name == 'npm' && steps.versions.outputs.package-manager-version || '^11.3' }}
++        run: npm i -g "npm@${NPM_VERSION}"
+ 
