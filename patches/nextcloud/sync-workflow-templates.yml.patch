@@ -1,25 +1,31 @@
 --- upstream/vendor/nextcloud/sync-workflow-templates.yml
 +++ workflow-templates/sync-workflow-templates.yml
-@@ -1,13 +1,16 @@
+@@ -1,18 +1,21 @@
  # This workflow is provided via the organization template repository
  #
-+# https://github.com/LibreCodeCoop/.github
 -# https://github.com/nextcloud/.github
++# https://github.com/LibreCodeCoop/.github
  # https://docs.github.com/en/actions/learn-github-actions/sharing-workflows-with-your-organization
  #
  # SPDX-FileCopyrightText: 2025 Nextcloud GmbH and Nextcloud contributors
  # SPDX-License-Identifier: MIT
- 
+
+-# This workflow will update all workflow templates
+-# Additionally it will reapply `workflow.yml.patch` files after syncing and only then commit the result
 +# This workflow will update all workflow templates.
 +# Additionally it will reapply workflow.yml.patch files after syncing and only then commit the result.
 +#
 +# Authentication is selected explicitly with vars.WORKFLOW_SYNC_AUTH_MODE.
 +# See docs/cross-repository-automation.md for modes, credentials and GITHUB_TOKEN limitations.
--# This workflow will update all workflow templates
--# Additionally it will reapply `workflow.yml.patch` files after syncing and only then commit the result
  name: Update workflows
  on:
    workflow_dispatch:
+   schedule:
+-      - cron: "45 22 * * 6"
++      - cron: "5 2 * * 0"
+
+ permissions:
+   contents: read
 @@ -26,9 +29,6 @@
        matrix:
          branches:
@@ -27,13 +33,14 @@
 -          - 'stable35'
 -          - 'stable34'
 -          - 'stable33'
- 
+
      name: Update workflows in ${{ matrix.branches }}
- 
+
 @@ -38,16 +38,123 @@
- 
+
      steps:
        - name: Check actor permission
+-        uses: skjnldsv/check-actor-permission@69e92a3c4711150929bca9fcf34448c5bf5526e7 # v3.0
 +        if: ${{ github.event_name == 'workflow_dispatch' }}
 +        shell: bash
 +        env:
@@ -89,7 +96,8 @@
 +        if: ${{ vars.WORKFLOW_SYNC_AUTH_MODE == '' || vars.WORKFLOW_SYNC_AUTH_MODE == 'librecode-app' }}
 +        id: librecode-app-token
 +        uses: actions/create-github-app-token@bcd2ba49218906704ab6c1aa796996da409d3eb1 # v3.2.0
-+        with:
+         with:
+-          require: admin
 +          client-id: ${{ vars.LIBRECODE_WORKFLOW_APP_CLIENT_ID }}
 +          private-key: ${{ secrets.LIBRECODE_WORKFLOW_APP_PRIVATE_KEY }}
 +          owner: ${{ github.repository_owner }}
@@ -102,8 +110,7 @@
 +        if: ${{ vars.WORKFLOW_SYNC_AUTH_MODE == 'github-app' }}
 +        id: consumer-app-token
 +        uses: actions/create-github-app-token@bcd2ba49218906704ab6c1aa796996da409d3eb1 # v3.2.0
--        uses: skjnldsv/check-actor-permission@69e92a3c4711150929bca9fcf34448c5bf5526e7 # v3.0
-         with:
++        with:
 +          client-id: ${{ vars.WORKFLOW_SYNC_APP_CLIENT_ID }}
 +          private-key: ${{ secrets.WORKFLOW_SYNC_APP_PRIVATE_KEY }}
 +          owner: ${{ github.repository_owner }}
@@ -139,13 +146,13 @@
 +
 +          echo "::add-mask::${token}"
 +          echo "token=${token}" >> "${GITHUB_OUTPUT}"
--          require: admin
- 
+
        - name: Checkout workflow repository
          uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
          with:
            persist-credentials: false
            path: source
+-          repository: nextcloud/.github
 +          repository: LibreCodeCoop/.github
 +
 +      - name: Record workflow catalog revision
@@ -153,22 +160,39 @@
 +        working-directory: source
 +        shell: bash
 +        run: echo "sha=$(git rev-parse HEAD)" >> "$GITHUB_OUTPUT"
--          repository: nextcloud/.github
- 
+
        - name: Checkout app
          uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-@@ -56,86 +163,31 @@
+@@ -56,112 +163,31 @@
            path: target
            ref: ${{ matrix.branches }}
- 
-+      - name: Synchronize workflow templates
-+        id: sync
-+        uses: ./source/actions/sync-workflows
-+        with:
-+          source: source/workflow-templates
-+          target: target
-+          catalog-commit: ${{ steps.catalog-revision.outputs.sha }}
+
+-      - name: Check for active merge freeze
+-        id: freeze
+-        env:
+-          BRANCH_NAME: ${{ matrix.branches }}
+-        run: |
+-          if [[ ! -f target/.github/workflows/block-merge-freeze.yml ]]; then
+-            echo 'No block-merge-freeze workflow, continuing'
+-            exit 0
+-          fi
+-          if [[ "$BRANCH_NAME" == 'main' || "$BRANCH_NAME" == 'master' ]]; then
+-            SERVER_REF='master'
+-          elif [[ "$BRANCH_NAME" =~ ^stable[0-9]+$ ]]; then
+-            SERVER_REF="$BRANCH_NAME"
+-          else
+-            echo 'Not based on master/main/stable*, so skipping freeze check'
+-            exit 0
+-          fi
+-          curl -sf "https://raw.githubusercontent.com/nextcloud/server/$SERVER_REF/version.php" --output version.php
+-          if grep 'OC_VersionString' version.php | grep -q -i -E '(\.0\.0 RC[3-9]|\.[1-9][0-9]* RC)'; then
+-            echo "Merge freeze is active for $SERVER_REF, skipping"
+-            echo 'active=true' >> $GITHUB_OUTPUT
+-          fi
+-          rm version.php
+-
 -      - name: Copy all workflow templates
+-        if: steps.freeze.outputs.active != 'true'
 -        run: |
 -          echo 'SUMMARY<<EOF' >> $GITHUB_ENV
 -          draft_only=0
@@ -177,7 +201,7 @@
 -            if [ -f "$workflow" ]; then
 -              filename=$(basename "$workflow")
 -              target_file="./target/.github/workflows/$filename"
- 
+-
 -              # Only copy if the file exists in the target repository
 -              if [ -f "$target_file" ]; then
 -                if [ -f "./target/.github/actions-lock.txt" ]; then
@@ -231,29 +255,37 @@
 -          done
 -          echo 'EOF' >> $GITHUB_ENV
 -          echo "DRAFT_ONLY=${draft_only}" >> $GITHUB_ENV
--
++      - name: Synchronize workflow templates
++        id: sync
++        uses: ./source/actions/sync-workflows
++        with:
++          source: source/workflow-templates
++          target: target
++          catalog-commit: ${{ steps.catalog-revision.outputs.sha }}
+
        - name: Create Pull Request
+-        if: steps.freeze.outputs.active != 'true'
 +        if: ${{ steps.sync.outputs.changed == 'true' }}
          uses: peter-evans/create-pull-request@5f6978faf089d4d20b00c7766989d076bb2fc7f1 # v8.1.1
          with:
-+          token: ${{ steps.auth-token.outputs.token }}
 -          token: ${{ secrets.COMMAND_BOT_WORKFLOWS }}
++          token: ${{ steps.auth-token.outputs.token }}
            commit-message: 'ci(actions): Update workflow templates from organization template repository'
            committer: GitHub <noreply@github.com>
-+          author: github-actions[bot] <41898282+github-actions[bot]@users.noreply.github.com>
 -          author: nextcloud-command <nextcloud-command@users.noreply.github.com>
++          author: github-actions[bot] <41898282+github-actions[bot]@users.noreply.github.com>
            path: target
            signoff: true
            branch: 'automated/noid/${{ matrix.branches }}-update-workflows'
            title: '[${{ matrix.branches }}] ci(actions): Update workflow templates from organization template repository'
-+          draft: ${{ steps.sync.outputs.patch_failed == 'true' }}
 -          draft: ${{ env.DRAFT_ONLY == 1 }}
++          draft: ${{ steps.sync.outputs.patch_failed == 'true' }}
            add-paths: .github/workflows/*.yml,.github/actions-lock.txt
            body: |
-+            Automated update of workflow templates from [LibreCodeCoop/.github](https://github.com/LibreCodeCoop/.github)
-+            ${{ steps.sync.outputs.summary }}
 -            Automated update of all workflow templates from [nextcloud/.github](https://github.com/nextcloud/.github)
 -            ${{ env.SUMMARY }}
++            Automated update of workflow templates from [LibreCodeCoop/.github](https://github.com/LibreCodeCoop/.github)
++            ${{ steps.sync.outputs.summary }}
            labels: |
              dependencies
              3. to review

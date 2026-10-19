@@ -8,3 +8,23 @@
  # https://docs.github.com/en/actions/learn-github-actions/sharing-workflows-with-your-organization
  #
  # SPDX-FileCopyrightText: 2021-2024 Nextcloud GmbH and Nextcloud contributors
+@@ -33,13 +33,15 @@
+         uses: nextcloud-libraries/parse-package-engines-action@122ae05d4257008180a514e1ddeb0c1b9d094bdd # v0.1.0
+         id: versions
+
+-      - name: Set up node ${{ steps.versions.outputs.node-version }}
++      - name: Set up node ${{ steps.versions.outputs.node-version || '^24' }}
+         uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+         with:
+-          node-version: ${{ steps.versions.outputs.node-version }}
++          node-version: ${{ steps.versions.outputs.node-version || '^24' }}
+
+-      - name: Set up npm ${{ steps.versions.outputs.package-manager-version }}
+-        run: npm i -g 'npm@${{ steps.versions.outputs.package-manager-version }}'
++      - name: Set up npm ${{ (steps.versions.outputs.package-manager-name == 'npm' && steps.versions.outputs.package-manager-version) || '^11.3' }}
++        env:
++          NPM_VERSION: ${{ (steps.versions.outputs.package-manager-name == 'npm' && steps.versions.outputs.package-manager-version) || '^11.3' }}
++        run: npm i -g "npm@$NPM_VERSION"
+
+       - name: Install dependencies
+         env:

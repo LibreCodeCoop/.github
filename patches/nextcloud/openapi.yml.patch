@@ -8,3 +8,25 @@
  # https://docs.github.com/en/actions/learn-github-actions/sharing-workflows-with-your-organization
  #
  # SPDX-FileCopyrightText: 2024 Nextcloud GmbH and Nextcloud contributors
+@@ -57,15 +57,17 @@
+         # Continue if no package.json
+         continue-on-error: true
+
+-      - name: Set up node ${{ steps.node_versions.outputs.node-version }}
++      - name: Set up node ${{ steps.node_versions.outputs.node-version || '^24' }}
+         if: ${{ steps.node_versions.outcome == 'success' }}
+         uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+         with:
+-          node-version: ${{ steps.node_versions.outputs.node-version }}
++          node-version: ${{ steps.node_versions.outputs.node-version || '^24' }}
+
+-      - name: Set up npm ${{ steps.node_versions.outputs.package-manager-version }}
++      - name: Set up npm ${{ (steps.node_versions.outputs.package-manager-name == 'npm' && steps.node_versions.outputs.package-manager-version) || '^11.3' }}
+         if: ${{ steps.node_versions.outcome == 'success' }}
+-        run: npm i -g 'npm@${{ steps.node_versions.outputs.package-manager-version }}'
++        env:
++          NPM_VERSION: ${{ (steps.node_versions.outputs.package-manager-name == 'npm' && steps.node_versions.outputs.package-manager-version) || '^11.3' }}
++        run: npm i -g "npm@$NPM_VERSION"
+
+       - name: Install dependencies
+         if: ${{ steps.node_versions.outcome == 'success' }}

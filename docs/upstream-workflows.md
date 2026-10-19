@@ -77,3 +77,25 @@ as fatal and do not create a partial update pull request.
 Pull-request creation uses a short-lived installation token from the `LibreCode Workflow Automation` GitHub App. Using only the workflow's `GITHUB_TOKEN` would prevent the resulting pull request from triggering the normal CI workflows. The refresh itself uses the read-only `GITHUB_TOKEN` only to resolve public upstream commits.
 
 Action pins in rendered templates are intentionally preserved from the current LibreCode template when the same Action still exists upstream. Dependency version updates are owned by Dependabot in this repository, while the upstream refresh imports structural workflow changes. This keeps upstream tracking and dependency updates independently reviewable.
+
+## Recovering a stale refresh pull request
+
+Use the current `main` templates as the starting point so recently merged
+Dependabot pins are preserved. Review the refreshed vendored sources against
+their previous versions, update the affected downstream patches, and run the
+renderer again. Do not resolve conflicts by accepting every upstream change or
+by editing only generated templates: the next refresh would lose those fixes.
+
+Keep upstream files byte-for-byte intact. LibreCode policy belongs in the
+patches. In particular, the consumer updater keeps its existing weekly schedule
+(`5 2 * * 0`, UTC) and does not inherit Nextcloud Server merge-freeze policy.
+Consumers that need release freezes can add them through their own workflow
+patch. The npm-based templates keep Node `^24` and npm `^11.3` as fallbacks when
+package metadata omits those versions; another package manager's version must
+not be used as an npm version.
+
+Before merging, verify source hashes, run the renderer's `check` command and the
+unit tests, and review actionlint, zizmor and workflow-policy checks. A second
+render must produce no changes. If the bot PR is replaced by a manually repaired
+PR, link the original PR and close it after the replacement is merged. Keep the
+patch repairs in the merged result so future scheduled refreshes can reuse them.
