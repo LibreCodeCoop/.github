@@ -21,6 +21,19 @@ This repository is the LibreCode Coop organization configuration repository. It 
 
 Changes to workflows/configuration should pass DCO, actionlint and zizmor. Governance changes should be planned before apply.
 
+## Upstream refresh and diff hygiene
+
+- Treat `upstream/vendor/**`, `patches/nextcloud/**`, and
+  `workflow-templates/**` as different review surfaces.
+- Never rewrite an entire downstream patch to fix an isolated upstream change.
+  Preserve the smallest applicable hunks and avoid whitespace-only churn.
+- Always review `git diff --ignore-all-space` alongside the normal diff.
+- Validate source checksums, full template rendering, and Python tests before
+  publishing an upstream refresh PR; verify a second render is unchanged.
+- The App Store publication template is LibreCode-owned. Its upstream copy is
+  reference material, not a source for regenerating the consumer wrapper.
+- Use signed, DCO-compliant, incremental commits and preserve PR review history.
+
 ## Security
 
 - Never commit GitHub App private keys or tokens.
