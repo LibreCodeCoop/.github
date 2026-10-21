@@ -96,6 +96,40 @@
         }
       ]
     },
+    "required-ci-gate": {
+      "name": "Require CI",
+      "target": "branch",
+      "enforcement": "disabled",
+      "bypass_actors": [
+        {
+          "actor_id": 0,
+          "actor_type": "OrganizationAdmin",
+          "bypass_mode": "pull_request"
+        }
+      ],
+      "conditions": {
+        "ref_name": {
+          "include": [
+            "~DEFAULT_BRANCH"
+          ],
+          "exclude": []
+        }
+      },
+      "rules": [
+        {
+          "type": "required_status_checks",
+          "parameters": {
+            "required_status_checks": [
+              {
+                "context": "ci-required"
+              }
+            ],
+            "strict_required_status_checks_policy": true,
+            "do_not_enforce_on_create": false
+          }
+        }
+      ]
+    },
     "organization-config-ci": {
       "name": "Require organization configuration CI",
       "target": "branch",
@@ -178,23 +212,9 @@
       }
     },
     "LibreCodeCoop/release-tool": {
-      "metadata": {
-        "description": "Production-grade PHP CLI and PHAR for planning and automating reproducible software releases.",
-        "topics": [
-          "hacktoberfest",
-          "php",
-          "cli",
-          "phar",
-          "release-automation",
-          "github-actions",
-          "nextcloud",
-          "nextcloud-app",
-          "semantic-versioning",
-          "changelog",
-          "keep-a-changelog",
-          "librecode"
-        ]
-      }
+      "policies": [
+        "required-ci-gate"
+      ]
     },
     "LibreCodeCoop/github-workflows": {
       "metadata": {
@@ -210,6 +230,11 @@
           "librecode"
         ]
       }
+    },
+    "LibreCodeCoop/nextcloud-docker-development": {
+      "policies": [
+        "required-ci-gate"
+      ]
     },
     "LibreCodeCoop/.github": {
       "policies": [
