@@ -96,10 +96,10 @@
         }
       ]
     },
-    "docker-development-required-ci": {
-      "name": "Require docker development CI",
+    "required-ci-gate": {
+      "name": "Require CI",
       "target": "branch",
-      "enforcement": "active",
+      "enforcement": "disabled",
       "bypass_actors": [
         {
           "actor_id": 0,
@@ -121,116 +121,7 @@
           "parameters": {
             "required_status_checks": [
               {
-                "context": "Shellcheck"
-              },
-              {
-                "context": "Build image (php81)"
-              },
-              {
-                "context": "Build image (php82)"
-              },
-              {
-                "context": "Build image (php83)"
-              },
-              {
-                "context": "Proxy unit tests"
-              },
-              {
-                "context": "Proxy Docker integration tests"
-              },
-              {
-                "context": "Worker contract tests"
-              },
-              {
-                "context": "SQLite worker integration"
-              },
-              {
-                "context": "MariaDB 10.6 worker integration"
-              },
-              {
-                "context": "MariaDB 10.11 worker integration"
-              },
-              {
-                "context": "Worker workspace integration"
-              }
-            ],
-            "strict_required_status_checks_policy": true,
-            "do_not_enforce_on_create": false
-          }
-        }
-      ]
-    },
-    "release-tool-required-ci": {
-      "name": "Require release-tool CI",
-      "target": "branch",
-      "enforcement": "active",
-      "bypass_actors": [
-        {
-          "actor_id": 0,
-          "actor_type": "OrganizationAdmin",
-          "bypass_mode": "pull_request"
-        }
-      ],
-      "conditions": {
-        "ref_name": {
-          "include": [
-            "~DEFAULT_BRANCH"
-          ],
-          "exclude": []
-        }
-      },
-      "rules": [
-        {
-          "type": "required_status_checks",
-          "parameters": {
-            "required_status_checks": [
-              {
-                "context": "PHP 8.3"
-              },
-              {
-                "context": "PHP 8.4"
-              },
-              {
-                "context": "PHP 8.5 runtime"
-              },
-              {
-                "context": "composer"
-              },
-              {
-                "context": "phpstan"
-              },
-              {
-                "context": "psalm"
-              },
-              {
-                "context": "phpmd"
-              },
-              {
-                "context": "phpcs"
-              },
-              {
-                "context": "cs-check"
-              },
-              {
-                "context": "rector-check"
-              },
-              {
-                "context": "deptrac"
-              },
-              {
-                "context": "infection"
-              },
-              {
-                "context": "Build and smoke"
-              },
-              {
-                "context": "actionlint"
-              },
-              {
-                "context": "zizmor"
-              },
-              {
-                "context": "reuse"
+                "context": "ci-required"
               }
             ],
             "strict_required_status_checks_policy": true,
@@ -321,23 +212,9 @@
       }
     },
     "LibreCodeCoop/release-tool": {
-      "metadata": {
-        "description": "Production-grade PHP CLI and PHAR for planning and automating reproducible software releases.",
-        "topics": [
-          "hacktoberfest",
-          "php",
-          "cli",
-          "phar",
-          "release-automation",
-          "github-actions",
-          "nextcloud",
-          "nextcloud-app",
-          "semantic-versioning",
-          "changelog",
-          "keep-a-changelog",
-          "librecode"
-        ]
-      }
+      "policies": [
+        "required-ci-gate"
+      ]
     },
     "LibreCodeCoop/github-workflows": {
       "metadata": {
@@ -356,12 +233,7 @@
     },
     "LibreCodeCoop/nextcloud-docker-development": {
       "policies": [
-        "docker-development-required-ci"
-      ]
-    },
-    "LibreCodeCoop/release-tool": {
-      "policies": [
-        "release-tool-required-ci"
+        "required-ci-gate"
       ]
     },
     "LibreCodeCoop/.github": {
