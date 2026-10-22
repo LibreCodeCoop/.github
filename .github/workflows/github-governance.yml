@@ -51,7 +51,7 @@ jobs:
           permission-administration: ${{ inputs.apply && 'write' || 'read' }}
 
       - name: ${{ inputs.apply && 'Apply' || 'Plan' }} repository governance
-        uses: LibreCodeCoop/github-governance@d9ec0fef2d447508e88f23c0830461cedd1f9977 # PR #36; pin released version after upstream merge
+        uses: LibreCodeCoop/github-governance@e79792a07317f6e51792cc62216175428bb91eb8 # PR #36; pin released version after upstream merge
         with:
           token: ${{ steps.app-token.outputs.token }}
           organization: LibreCodeCoop
