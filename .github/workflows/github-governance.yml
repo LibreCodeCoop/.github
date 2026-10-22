@@ -21,47 +21,18 @@ permissions:
   contents: read
 
 concurrency:
-  group: github-governance
-  cancel-in-progress: false
+  group: github-governance-${{ inputs.apply && 'apply' || 'plan' }}
+  cancel-in-progress: ${{ !inputs.apply }}
 
 jobs:
-  discover:
-    name: Discover public repositories
+  governance:
+    name: ${{ inputs.apply && 'Apply' || 'Plan' }} LibreCodeCoop governance
     if: github.event_name != 'workflow_dispatch' || github.ref == 'refs/heads/main'
     runs-on: ubuntu-latest
-    timeout-minutes: 10
+    timeout-minutes: 30
+    # The App private key is environment-scoped. One approval per run,
+    # rather than one approval for every repository in a matrix.
     environment: ruleset-sync
-    outputs:
-      repositories: ${{ steps.repositories.outputs.repositories }}
-
-    steps:
-      - name: Authenticate GitHub App for organization discovery
-        id: app-token
-        uses: actions/create-github-app-token@bcd2ba49218906704ab6c1aa796996da409d3eb1 # v3.2.0
-        with:
-          client-id: ${{ vars.RULESET_APP_CLIENT_ID }}
-          private-key: ${{ secrets.RULESET_APP_PRIVATE_KEY }}
-          owner: LibreCodeCoop # zizmor: ignore[github-app] discovery must enumerate the organization's repositories
-          permission-administration: read
-
-      - name: Discover repositories
-        id: repositories
-        uses: LibreCodeCoop/github-governance/discover@3755c14f01c7d544fe89da3a6daf540faa2510ce # v0.2.0
-        with:
-          organization: LibreCodeCoop
-          token: ${{ steps.app-token.outputs.token }}
-
-  reconcile:
-    name: ${{ inputs.apply && 'Apply' || 'Plan' }} LibreCodeCoop/${{ matrix.repository }}
-    needs: discover
-    runs-on: ubuntu-latest
-    timeout-minutes: 10
-    environment: ruleset-sync
-
-    strategy:
-      fail-fast: false
-      matrix:
-        repository: ${{ fromJSON(needs.discover.outputs.repositories) }}
 
     steps:
       - name: Checkout caller configuration
@@ -69,20 +40,21 @@ jobs:
         with:
           persist-credentials: false
 
-      - name: Authenticate GitHub App for repository governance
+      - name: Authenticate GitHub App
         id: app-token
         uses: actions/create-github-app-token@bcd2ba49218906704ab6c1aa796996da409d3eb1 # v3.2.0
         with:
           client-id: ${{ vars.RULESET_APP_CLIENT_ID }}
           private-key: ${{ secrets.RULESET_APP_PRIVATE_KEY }}
-          owner: LibreCodeCoop
-          repositories: ${{ matrix.repository }}
-          permission-administration: write
+          owner: LibreCodeCoop # zizmor: ignore[github-app] organization-wide governance requires organization repository access
+          # Planning only needs read. Applying remains manual and requires environment approval.
+          permission-administration: ${{ inputs.apply && 'write' || 'read' }}
 
-      - name: Reconcile repository governance
-        uses: LibreCodeCoop/github-governance@3755c14f01c7d544fe89da3a6daf540faa2510ce # v0.2.0
+      - name: ${{ inputs.apply && 'Apply' || 'Plan' }} repository governance
+        uses: LibreCodeCoop/github-governance@d9ec0fef2d447508e88f23c0830461cedd1f9977 # PR #36; pin released version after upstream merge
         with:
           token: ${{ steps.app-token.outputs.token }}
-          repository: LibreCodeCoop/${{ matrix.repository }}
+          organization: LibreCodeCoop
           config: ${{ github.workspace }}/governance.config.json
           apply: ${{ inputs.apply && 'true' || 'false' }}
+          allow-drift: 'true'
