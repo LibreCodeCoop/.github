@@ -8,6 +8,11 @@ on:
         required: false
         default: false
         type: boolean
+      repository:
+        description: Optional repository name (no owner); empty selects all public repositories
+        required: false
+        default: ''
+        type: string
   push:
     branches:
       - main
@@ -25,36 +30,57 @@ concurrency:
   cancel-in-progress: ${{ !inputs.apply }}
 
 jobs:
-  governance:
-    name: ${{ inputs.apply && 'Apply' || 'Plan' }} LibreCodeCoop governance
-    if: github.event_name != 'workflow_dispatch' || github.ref == 'refs/heads/main'
+  plan:
+    name: Plan LibreCodeCoop governance
+    if: github.ref == 'refs/heads/main'
     runs-on: ubuntu-latest
     timeout-minutes: 30
-    # The App private key is environment-scoped. One approval per run,
-    # rather than one approval for every repository in a matrix.
-    environment: ruleset-sync
-
     steps:
       - name: Checkout caller configuration
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
 
-      - name: Authenticate GitHub App
+      - name: Plan repository governance (read only)
+        uses: LibreCodeCoop/github-governance@3a02c8635a589f7213abd422a4d8b250a92e7ced # public planning support; pin immutable commit
+        with:
+          token: ${{ github.token }}
+          organization: ${{ inputs.repository == '' && 'LibreCodeCoop' || '' }}
+          repository: ${{ inputs.repository != '' && format('LibreCodeCoop/{0}', inputs.repository) || '' }}
+          config: ${{ github.workspace }}/governance.config.json
+          public-discovery: ${{ inputs.repository == '' && 'true' || 'false' }}
+          allow-drift: 'true'
+          apply: 'false'
+
+  apply:
+    name: Apply LibreCodeCoop governance
+    if: github.event_name == 'workflow_dispatch' && inputs.apply && github.ref == 'refs/heads/main'
+    needs: plan
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    # Only the privileged Apply job has access to the protected GitHub App key.
+    environment: ruleset-sync
+    steps:
+      - name: Checkout caller configuration
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Authenticate GitHub App for Apply
         id: app-token
         uses: actions/create-github-app-token@bcd2ba49218906704ab6c1aa796996da409d3eb1 # v3.2.0
         with:
           client-id: ${{ vars.RULESET_APP_CLIENT_ID }}
           private-key: ${{ secrets.RULESET_APP_PRIVATE_KEY }}
-          owner: LibreCodeCoop # zizmor: ignore[github-app] organization-wide governance requires organization repository access
-          # Planning only needs read. Applying remains manual and requires environment approval.
-          permission-administration: ${{ inputs.apply && 'write' || 'read' }}
+          owner: LibreCodeCoop # zizmor: ignore[github-app] governance is explicitly organization-scoped
+          repositories: ${{ inputs.repository }}
+          permission-administration: write
 
-      - name: ${{ inputs.apply && 'Apply' || 'Plan' }} repository governance
-        uses: LibreCodeCoop/github-governance@e79792a07317f6e51792cc62216175428bb91eb8 # PR #36; pin released version after upstream merge
+      - name: Apply repository governance
+        uses: LibreCodeCoop/github-governance@3a02c8635a589f7213abd422a4d8b250a92e7ced # public planning support; pin immutable commit
         with:
           token: ${{ steps.app-token.outputs.token }}
-          organization: LibreCodeCoop
+          organization: ${{ inputs.repository == '' && 'LibreCodeCoop' || '' }}
+          repository: ${{ inputs.repository != '' && format('LibreCodeCoop/{0}', inputs.repository) || '' }}
           config: ${{ github.workspace }}/governance.config.json
-          apply: ${{ inputs.apply && 'true' || 'false' }}
-          allow-drift: 'true'
+          apply: 'true'
