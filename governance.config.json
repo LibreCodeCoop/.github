@@ -9,6 +9,11 @@
           "actor_id": 0,
           "actor_type": "OrganizationAdmin",
           "bypass_mode": "pull_request"
+        },
+        {
+          "actor_id": 11527171,
+          "actor_type": "Team",
+          "bypass_mode": "pull_request"
         }
       ],
       "conditions": {
