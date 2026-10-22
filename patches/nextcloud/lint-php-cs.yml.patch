@@ -8,3 +8,10 @@
  # https://docs.github.com/en/actions/learn-github-actions/sharing-workflows-with-your-organization
  #
  # SPDX-FileCopyrightText: 2021-2024 Nextcloud GmbH and Nextcloud contributors
+@@ -22,1 +22,2 @@
+     runs-on: ubuntu-latest
++    timeout-minutes: 12
+@@ -44,1 +45,3 @@
+           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
++          update: true
++          verbose: true
