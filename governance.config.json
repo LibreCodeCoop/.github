@@ -201,40 +201,12 @@
     "LibreCodeCoop/github-governance": {
       "policies": [
         "governance-ci"
-      ],
-      "metadata": {
-        "description": "Declarative, testable GitHub repository governance and ruleset automation for organizations.",
-        "topics": [
-          "hacktoberfest",
-          "github",
-          "governance",
-          "github-actions",
-          "automation",
-          "rulesets",
-          "security",
-          "librecode"
-        ]
-      }
+      ]
     },
     "LibreCodeCoop/release-tool": {
       "policies": [
         "required-ci-gate"
       ]
-    },
-    "LibreCodeCoop/github-workflows": {
-      "metadata": {
-        "description": "Reusable, testable GitHub workflows for LibreCode projects and downstream integrations.",
-        "topics": [
-          "hacktoberfest",
-          "github-actions",
-          "github-workflows",
-          "automation",
-          "ci",
-          "reusable-workflows",
-          "nextcloud",
-          "librecode"
-        ]
-      }
     },
     "LibreCodeCoop/nextcloud-docker-development": {
       "policies": [
@@ -244,19 +216,7 @@
     "LibreCodeCoop/.github": {
       "policies": [
         "organization-config-ci"
-      ],
-      "metadata": {
-        "description": "Shared GitHub organization profile, community files and workflow catalog for LibreCode Coop.",
-        "homepage": "https://librecode.coop/",
-        "topics": [
-          "hacktoberfest",
-          "github",
-          "organization",
-          "github-actions",
-          "community",
-          "librecode"
-        ]
-      }
+      ]
     }
   }
 }
