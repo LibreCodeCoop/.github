@@ -29,7 +29,7 @@ jobs:
     steps:
       - id: stable
         name: Resolve stable release line
-        uses: LibreCodeCoop/release-tool/actions/stable-select@30ba5d8a33089331d829f586546d34cd45a529d7
+        uses: LibreCodeCoop/release-tool/actions/stable-select@30ba5d8a33089331d829f586546d34cd45a529d7 # v0.11.21
         with:
           github-token: ${{ github.token }}
 
@@ -62,7 +62,7 @@ jobs:
 
       - name: Inspect checked-out stable metadata
         id: build_metadata
-        uses: LibreCodeCoop/release-tool/actions/build-inspect@30ba5d8a33089331d829f586546d34cd45a529d7
+        uses: LibreCodeCoop/release-tool/actions/build-inspect@30ba5d8a33089331d829f586546d34cd45a529d7 # v0.11.21
         with:
           root: ${{ env.APP_NAME }}
 
@@ -196,7 +196,7 @@ jobs:
           tar -zcf "${APP_NAME}.tar.gz" "${APP_NAME}"
 
       - name: Validate release artifact
-        uses: LibreCodeCoop/release-tool/actions/artifact-validate@30ba5d8a33089331d829f586546d34cd45a529d7
+        uses: LibreCodeCoop/release-tool/actions/artifact-validate@30ba5d8a33089331d829f586546d34cd45a529d7 # v0.11.21
         with:
           artifact: ${{ env.APP_NAME }}/build/artifacts/${{ env.APP_NAME }}.tar.gz
           app-name: ${{ env.APP_NAME }}
@@ -222,7 +222,7 @@ jobs:
 
       - name: Build nightly change list
         id: release-note-changes
-        uses: LibreCodeCoop/release-tool/actions/release-notes@30ba5d8a33089331d829f586546d34cd45a529d7
+        uses: LibreCodeCoop/release-tool/actions/release-notes@30ba5d8a33089331d829f586546d34cd45a529d7 # v0.11.21
         with:
           repository: ${{ github.repository }}
           branch: ${{ steps.nightly.outputs.branch }}

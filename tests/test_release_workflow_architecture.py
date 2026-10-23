@@ -50,7 +50,7 @@ class ReleaseWorkflowArchitectureTest(unittest.TestCase):
                 self.assertNotIn("RELEASE_SHA_PENDING", content)
                 for line in content.splitlines():
                     if re.search(r"^\s*uses: LibreCodeCoop/release-tool/", line):
-                        self.assertRegex(line, r"@[0-9a-f]{40}$")
+                        self.assertRegex(line, r"@[0-9a-f]{40}\s+#\s+v?\d+\.\d+\.\d+$")
 
 
 if __name__ == "__main__":

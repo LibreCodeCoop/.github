@@ -33,5 +33,7 @@ jobs:
         with:
           persist-credentials: false
 
-      - name: Check workflow policy
-        run: python3 scripts/check_workflow_policy.py
+      - name: Check workflow policy and regression tests
+        run: |
+          python3 -m unittest tests.test_workflow_policy -v
+          python3 scripts/check_workflow_policy.py
