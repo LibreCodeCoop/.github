@@ -10,6 +10,10 @@ from pathlib import Path
 
 USES_RE = re.compile(r"^\s*(?:-\s*)?uses:\s*([^@\s]+)@([^\s#]+)")
 FULL_SHA_RE = re.compile(r"^[0-9a-fA-F]{40}$")
+# Preserve the upstream release identifier for Dependabot and human review.
+# Some upstream releases use only major.minor or omit the v prefix.
+VERSION_COMMENT_RE = re.compile(r"^#\s*v?\d+\.\d+(?:\.\d+)?(?:[-.][A-Za-z0-9.-]+)?\s*$")
+INTERNAL_OWNERS = ("LibreCodeCoop/", "LibreSign/")
 
 
 def workflow_files(root: Path) -> list[Path]:
@@ -42,6 +46,19 @@ def check_file(path: Path) -> list[str]:
             findings.append(
                 f"{path}:{line_number}: {action} must be pinned to a full 40-character commit SHA"
             )
+        else:
+            annotation = line[match.end():].strip()
+            if action.startswith(INTERNAL_OWNERS):
+                # Internal actions without tagged releases still require an
+                # explicit source reference, e.g. "# main at <short SHA>".
+                if not re.fullmatch(r"#\s*\S(?:.*\S)?", annotation):
+                    findings.append(
+                        f"{path}:{line_number}: {action} must include a source/version comment"
+                    )
+            elif not VERSION_COMMENT_RE.fullmatch(annotation):
+                findings.append(
+                    f"{path}:{line_number}: {action} must include its upstream version comment (# vX.Y.Z)"
+                )
 
         if action == "actions/checkout":
             block = "\n".join(lines[index + 1 : index + 8])

@@ -23,10 +23,10 @@ class WorkflowPolicyTest(unittest.TestCase):
 permissions:
   contents: read
 steps:
-  - uses: actions/checkout@0123456789012345678901234567890123456789
+  - uses: actions/checkout@0123456789012345678901234567890123456789 # v4.4.0
     with:
       persist-credentials: false
-  - uses: example/action@abcdefabcdefabcdefabcdefabcdefabcdefabcd
+  - uses: example/action@abcdefabcdefabcdefabcdefabcdefabcdefabcd # 1.2.3
 """
         )
         self.assertEqual(check_file(path), [])
@@ -41,7 +41,7 @@ steps:
         path = self.write(
             """
 steps:
-  - uses: actions/checkout@0123456789012345678901234567890123456789
+  - uses: actions/checkout@0123456789012345678901234567890123456789 # v4.4.0
 """
         )
         findings = check_file(path)
@@ -53,6 +53,41 @@ steps:
         findings = check_file(path)
         self.assertEqual(len(findings), 1)
         self.assertIn("write-all", findings[0])
+
+    def test_rejects_missing_version_comment_on_external_action(self) -> None:
+        path = self.write(
+            "steps:\n  - uses: example/action@abcdefabcdefabcdefabcdefabcdefabcdefabcd\n"
+        )
+        findings = check_file(path)
+        self.assertEqual(len(findings), 1)
+        self.assertIn("upstream version comment", findings[0])
+
+    def test_rejects_non_version_comment_on_external_action(self) -> None:
+        path = self.write(
+            "steps:\n  - uses: example/action@abcdefabcdefabcdefabcdefabcdefabcdefabcd # latest\n"
+        )
+        self.assertIn("upstream version comment", check_file(path)[0])
+
+    def test_accepts_tag_without_v_and_two_component_version(self) -> None:
+        path = self.write(
+            "steps:\n  - uses: bats-core/bats-action@abcdefabcdefabcdefabcdefabcdefabcdefabcd # 4.0.0\n"
+            "  - uses: example/action@0123456789012345678901234567890123456789 # v1.2\n"
+        )
+        self.assertEqual(check_file(path), [])
+
+    def test_internal_actions_need_source_comment_when_no_release(self) -> None:
+        path = self.write(
+            "steps:\n  - uses: LibreCodeCoop/release-tool/actions/prepare@"
+            "abcdefabcdefabcdefabcdefabcdefabcdefabcd\n"
+        )
+        self.assertIn("source/version comment", check_file(path)[0])
+
+    def test_internal_pinned_action_allows_descriptive_source_ref(self) -> None:
+        path = self.write(
+            "steps:\n  - uses: LibreCodeCoop/.github/actions/helpers@"
+            "abcdefabcdefabcdefabcdefabcdefabcdefabcd # main at abcdef1\n"
+        )
+        self.assertEqual(check_file(path), [])
 
     def test_allows_local_action(self) -> None:
         path = self.write("steps:\n  - uses: ./actions/sync-workflows\n")
