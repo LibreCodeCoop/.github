@@ -31,6 +31,79 @@ class SyncWorkflowsActionTest(unittest.TestCase):
         source.mkdir()
         return temporary, source, target
 
+
+    def test_selected_enrollment_preserves_unmanaged_divergence(self) -> None:
+        temporary, source, target = self.fixture()
+        with temporary:
+            (source / "npm-audit-fix.yml").write_text("name: Audit\\n")
+            (source / "lint.yml").write_text("name: Catalog lint\\n")
+            target_audit = target / ".github/workflows/npm-audit-fix.yml"
+            target_audit.write_text("name: Audit\\n")
+            target_lint = target / ".github/workflows/lint.yml"
+            target_lint.write_text("name: Local lint\\n")
+            lock = target / ".github/actions-lock.txt"
+
+            report = sync_module.sync(
+                source, target, lock,
+                include=frozenset({"npm-audit-fix.yml"}),
+            )
+
+            self.assertFalse(report["blocked"])
+            self.assertEqual(report["adopted"], ["npm-audit-fix.yml"])
+            self.assertEqual(target_lint.read_text(), "name: Local lint\\n")
+            self.assertEqual(set(sync_module.parse_lock(lock)), {"npm-audit-fix.yml"})
+
+            repeat = sync_module.sync(
+                source, target, lock,
+                include=frozenset({"npm-audit-fix.yml"}),
+            )
+            self.assertFalse(repeat["changed"])
+            self.assertEqual(repeat["unchanged"], ["npm-audit-fix.yml"])
+
+    def test_selected_enrollment_keeps_unrelated_lock_entries(self) -> None:
+        temporary, source, target = self.fixture()
+        with temporary:
+            audit = source / "npm-audit-fix.yml"
+            audit.write_text("name: Audit\\n")
+            lint = source / "lint.yml"
+            lint.write_text("name: Old lint\\n")
+            (target / ".github/workflows/npm-audit-fix.yml").write_text("name: Audit\\n")
+            (target / ".github/workflows/lint.yml").write_text("name: Diverged lint\\n")
+            lock = target / ".github/actions-lock.txt"
+            sync_module.write_lock(lock, {
+                "lint.yml": sync_module.md5(lint),
+                "removed.yml": "1" * 32,
+            })
+
+            report = sync_module.sync(
+                source, target, lock,
+                include=frozenset({"npm-audit-fix.yml"}),
+            )
+
+            self.assertFalse(report["blocked"])
+            self.assertEqual(report["adopted"], ["npm-audit-fix.yml"])
+            self.assertEqual(report["removed_from_lock"], [])
+            self.assertEqual(
+                set(sync_module.parse_lock(lock)),
+                {"npm-audit-fix.yml", "lint.yml", "removed.yml"},
+            )
+
+    def test_selected_enrollment_rejects_missing_or_unsafe_names(self) -> None:
+        temporary, source, target = self.fixture()
+        with temporary:
+            (source / "npm-audit-fix.yml").write_text("name: Audit\\n")
+            lock = target / ".github/actions-lock.txt"
+            for included in (
+                frozenset(),
+                frozenset({"../../secrets.yml"}),
+                frozenset({"missing.yml"}),
+                frozenset({"plain-text"}),
+            ):
+                with self.subTest(included=included):
+                    with self.assertRaises(ValueError):
+                        sync_module.sync(source, target, lock, include=included)
+            self.assertFalse(lock.exists())
+
     def test_adopts_matching_existing_workflow(self) -> None:
         temporary, source, target = self.fixture()
         with temporary:

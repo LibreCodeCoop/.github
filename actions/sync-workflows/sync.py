@@ -220,6 +220,7 @@ def sync(
     lock_path: Path,
     *,
     catalog_commit: str = "",
+    include: frozenset[str] | None = None,
 ) -> dict[str, object]:
     if not source.is_dir():
         raise ValueError(f"source directory does not exist: {source}")
@@ -237,12 +238,26 @@ def sync(
     details: list[str] = []
 
     source_by_name = {path.name: path for path in workflow_files(source)}
+    scoped_entries = set(entries)
+    if include is not None:
+        if not include or any(
+            name != Path(name).name or not name.endswith((".yml", ".yaml"))
+            for name in include
+        ):
+            raise ValueError("include must contain plain workflow filenames")
+        missing = include - source_by_name.keys()
+        if missing:
+            raise ValueError(f"workflow not found in catalog: {', '.join(sorted(missing))}")
+        source_by_name = {
+            name: path for name, path in source_by_name.items() if name in include
+        }
+        scoped_entries &= include
 
-    stale_entries = sorted(set(entries) - set(source_by_name))
+    stale_entries = sorted(scoped_entries - set(source_by_name))
     for name in stale_entries:
         del entries[name]
 
-    for name in sorted(entries):
+    for name in sorted(scoped_entries):
         if name in source_by_name:
             target_file = target / ".github/workflows" / name
             if not target_file.is_file():
@@ -388,6 +403,7 @@ def main() -> int:
     parser.add_argument("--target", required=True, type=Path)
     parser.add_argument("--lock-file", default=".github/actions-lock.txt")
     parser.add_argument("--catalog-commit", default="")
+    parser.add_argument("--include", default="", help="Comma-separated workflow filenames")
     args = parser.parse_args()
 
     try:
@@ -395,11 +411,16 @@ def main() -> int:
         target = args.target.resolve()
         lock_path = target / args.lock_file
 
+        requested = [item.strip() for item in args.include.split(",")] if args.include else []
+        if any(not item for item in requested):
+            raise ValueError("--include must list nonempty workflow filenames")
+
         report = sync(
             source,
             target,
             lock_path,
             catalog_commit=args.catalog_commit,
+            include=frozenset(requested) if requested else None,
         )
 
         summary = render_summary(report)

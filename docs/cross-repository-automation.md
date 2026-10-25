@@ -16,6 +16,12 @@ LibreCodeCoop/.github catalog
     -> reviewable consumer pull request
 ```
 
+For gradual adoption, consumers can pass `include: npm-audit-fix.yml` to the
+`sync-workflows` action to enroll just that template while leaving other local
+workflows and existing lock entries untouched. An empty `include` retains the
+standard behavior of reconciling all installed catalog workflows. The selection
+must reference existing catalog filenames; missing filenames cause an error.
+
 The updater manages workflows already installed in the consumer repository. It records catalog state in `.github/actions-lock.txt`, reapplies an optional `<workflow>.patch`, and refuses to overwrite unexplained local divergence.
 
 ## Authentication
