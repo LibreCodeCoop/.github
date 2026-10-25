@@ -50,7 +50,10 @@ The catalog updater targets only the consumer's default branch by default. Proje
 
 `LibreCodeCoop/.github` is the source of truth for LibreCode-managed workflow templates and the distribution catalog consumed by repository updaters. Templates derived from external upstream sources are refreshed through the pinned upstream/patch pipeline rather than edited as independent downstream implementations.
 
-Only templates listed in `workflow-catalog.json` are published. Generated or experimental workflows should not be added to the catalog until they are ready for consumers.
+YAML workflows present in `workflow-templates/` form the distribution catalog.
+Generated or experimental workflows should not be added until they are ready for consumers.
+For the npm audit workflow, consumers need a matching local patch and configured
+GitHub App credentials before enrollment.
 
 ## LibreCode catalog credentials
 

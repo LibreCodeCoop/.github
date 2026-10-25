@@ -29,6 +29,26 @@ Rendered downstream templates are declared separately in
 `upstream/templates.json`. Each template points to one vendored source, an
 ordered patch list and a generated workflow under GitHub's native `workflow-templates/` directory. Template metadata (`*.properties.json`) is maintained locally so LibreCode can provide its own names, descriptions, categories and icons without inheriting upstream branding.
 
+## Dependency-audit workflow
+
+The `npm-audit-fix.yml` catalog template is derived from a pinned Nextcloud source
+using `patches/nextcloud/npm-audit-fix.yml.patch`. The vendored source remains
+unaltered. The patch removes Nextcloud-specific release-freeze and automatic
+approval/merge behavior, replaces the personal PAT with a short-lived, narrowly
+scoped LibreCode GitHub App token, and emits conventional dependency PR titles.
+
+The shared template handles the default branch only. A consumer that audits
+supported stable branches supplies `.github/workflows/npm-audit-fix.yml.patch`,
+which declares those branches and any local schedule or labels. Do not put
+consumer release branches into the shared patch.
+
+To adopt an existing local workflow, first commit the exact rendered
+catalog template plus its consumer patch. Otherwise the synchronizer will
+correctly report local divergence rather than overwrite the existing file.
+After the organization catalog PR is merged, a synchronization PR can record
+the catalog revision in `.github/actions-lock.txt`. Verify that the next
+synchronization is unchanged. No merge or publication is automatic.
+
 ## Commands
 
 Synchronize declared immutable sources:
