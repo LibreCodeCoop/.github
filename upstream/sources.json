@@ -125,6 +125,15 @@
       "url": "https://raw.githubusercontent.com/nextcloud/.github/593089b25a456dc70dc66eb09efb35de69a5f621/workflow-templates/sync-workflow-templates.yml",
       "sha256": "afeb694de2555c139e5fdfbbbe8e6af32ab609ba7eee2d32cc894872a6a3ac7d",
       "destination": "upstream/vendor/nextcloud/sync-workflow-templates.yml"
+    },
+    {
+      "name": "nextcloud-npm-audit-fix",
+      "repository": "nextcloud/.github",
+      "ref": "master",
+      "path": "workflow-templates/npm-audit-fix.yml",
+      "url": "https://raw.githubusercontent.com/nextcloud/.github/d17a1728cd176b54fe0be73407ed0062a7f4ec5a/workflow-templates/npm-audit-fix.yml",
+      "sha256": "ae8743960f808afaf479d7c3aa0f7ee04b4ad13a52c5cafe9f7eb32b19807edc",
+      "destination": "upstream/vendor/nextcloud/npm-audit-fix.yml"
     }
   ]
 }
