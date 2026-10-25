@@ -108,6 +108,14 @@
         "patches/nextcloud/sync-workflow-templates.yml.patch"
       ],
       "destination": "workflow-templates/sync-workflow-templates.yml"
+    },
+    {
+      "name": "nextcloud-npm-audit-fix",
+      "source": "upstream/vendor/nextcloud/npm-audit-fix.yml",
+      "patches": [
+        "patches/nextcloud/npm-audit-fix.yml.patch"
+      ],
+      "destination": "workflow-templates/npm-audit-fix.yml"
     }
   ]
 }

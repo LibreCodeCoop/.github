@@ -12,7 +12,7 @@ USES_RE = re.compile(r"^\s*(?:-\s*)?uses:\s*([^@\s]+)@([^\s#]+)")
 FULL_SHA_RE = re.compile(r"^[0-9a-fA-F]{40}$")
 # Preserve the upstream release identifier for Dependabot and human review.
 # Some upstream releases use only major.minor or omit the v prefix.
-VERSION_COMMENT_RE = re.compile(r"^#\s*v?\d+\.\d+(?:\.\d+)?(?:[-.][A-Za-z0-9.-]+)?\s*$")
+VERSION_COMMENT_RE = re.compile(r"^#\s*v?\d+(?:\.\d+){0,2}(?:[-.][A-Za-z0-9.-]+)?\s*$")
 INTERNAL_OWNERS = ("LibreCodeCoop/", "LibreSign/")
 
 

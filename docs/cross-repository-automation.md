@@ -16,6 +16,12 @@ LibreCodeCoop/.github catalog
     -> reviewable consumer pull request
 ```
 
+For gradual adoption, consumers can pass `include: npm-audit-fix.yml` to the
+`sync-workflows` action to enroll just that template while leaving other local
+workflows and existing lock entries untouched. An empty `include` retains the
+standard behavior of reconciling all installed catalog workflows. The selection
+must reference existing catalog filenames; missing filenames cause an error.
+
 The updater manages workflows already installed in the consumer repository. It records catalog state in `.github/actions-lock.txt`, reapplies an optional `<workflow>.patch`, and refuses to overwrite unexplained local divergence.
 
 ## Authentication
@@ -50,7 +56,10 @@ The catalog updater targets only the consumer's default branch by default. Proje
 
 `LibreCodeCoop/.github` is the source of truth for LibreCode-managed workflow templates and the distribution catalog consumed by repository updaters. Templates derived from external upstream sources are refreshed through the pinned upstream/patch pipeline rather than edited as independent downstream implementations.
 
-Only templates listed in `workflow-catalog.json` are published. Generated or experimental workflows should not be added to the catalog until they are ready for consumers.
+YAML workflows present in `workflow-templates/` form the distribution catalog.
+Generated or experimental workflows should not be added until they are ready for consumers.
+For the npm audit workflow, consumers need a matching local patch and configured
+GitHub App credentials before enrollment.
 
 ## LibreCode catalog credentials
 

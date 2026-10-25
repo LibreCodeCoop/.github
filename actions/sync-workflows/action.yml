@@ -19,6 +19,10 @@ inputs:
     description: Immutable workflow catalog commit being materialized.
     required: false
     default: ''
+  include:
+    description: Optional comma-separated filenames to manage; empty manages all installed templates.
+    required: false
+    default: ''
 
 outputs:
   changed:
@@ -55,9 +59,11 @@ runs:
         SYNC_TARGET: ${{ inputs.target }}
         SYNC_LOCK_FILE: ${{ inputs.lock-file }}
         SYNC_CATALOG_COMMIT: ${{ inputs.catalog-commit }}
+        SYNC_INCLUDE: ${{ inputs.include }}
       run: >-
         python3 "$SYNC_ACTION_PATH/sync.py"
         --source "$SYNC_SOURCE"
         --target "$SYNC_TARGET"
         --lock-file "$SYNC_LOCK_FILE"
         --catalog-commit "$SYNC_CATALOG_COMMIT"
+        --include "$SYNC_INCLUDE"

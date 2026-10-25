@@ -1,0 +1,11 @@
+{
+  "name": "Resolve npm audit vulnerabilities",
+  "description": "Open a reviewable dependency-security PR without automatic approval or merge.",
+  "iconName": "octicon package",
+  "categories": [
+    "JavaScript"
+  ],
+  "filePatterns": [
+    "^package.json$"
+  ]
+}

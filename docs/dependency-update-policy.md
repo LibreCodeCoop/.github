@@ -6,8 +6,8 @@ SPDX-License-Identifier: AGPL-3.0-or-later
 # Dependency update and auto-merge policy
 
 Dependency automation is more privileged than lint or test workflows because it can
-create, approve or merge pull requests. It is therefore not automatically copied from
-Nextcloud into the LibreCode catalog.
+create, approve or merge pull requests. It may only be imported from Nextcloud into the LibreCode catalog with an
+explicit security patch, a generic credential model and human review.
 
 ## Allowed actors
 
@@ -52,7 +52,8 @@ A workflow using `pull_request_target` must:
 ## Distribution decision
 
 Dependency/update workflows are cataloged only when their credential and actor model is
-generic across LibreCode consumers.
+generic across LibreCode consumers. Consumer-specific supported branches, schedules and
+labels must remain in repository-local patches.
 
 Repository-specific combinations of Dependabot, Renovate, labels, branch naming or PATs
 remain local workflows. The organization catalog should not centralize them merely to
@@ -62,6 +63,9 @@ reduce YAML duplication.
 
 - `dependabot-approve-merge.yml`: do not migrate the existing Extract workflow until it
   uses the organization policy above and an organization-owned credential model.
-- `npm-audit-fix.yml`: keep repository-local; it may create a remediation PR but should
-  not imply automatic approval/merge.
+- `npm-audit-fix.yml`: distribute the pinned Nextcloud source through a LibreCode patch
+  which removes upstream automatic approval/merge, uses a short-lived, repository-scoped
+  LibreCode Workflow Automation GitHub App token and generates conventional `fix(deps)` PRs.
+  Consumer enrollment is opt-in and requires the GitHub App credentials and installation;
+  the workflow never approves or merges its own PRs.
 - obsolete Nextcloud OCP auto-merge workflows are not migrated.
