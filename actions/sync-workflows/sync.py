@@ -136,7 +136,10 @@ def write_lock(
             value = entries[name]
             if isinstance(value, str):
                 raise ValueError("cannot mix legacy and v2 lock entries")
-            lines.append(value.to_json())
+            if value.algorithm == "md5":
+                lines.append(f"{value.digest} {name}")
+            else:
+                lines.append(value.to_json())
 
     path.parent.mkdir(parents=True, exist_ok=True)
     path.write_text("\n".join(lines) + "\n", encoding="utf-8")
