@@ -89,6 +89,13 @@ steps:
         )
         self.assertEqual(check_file(path), [])
 
+    def test_accepts_real_major_only_action_tag(self) -> None:
+        path = self.write(
+            "steps:\n  - uses: skjnldsv/read-package-engines-version-actions@"
+            "06d6db44aa62f4609ba070f556ec24bc99fb85cb # v4\n"
+        )
+        self.assertEqual(check_file(path), [])
+
     def test_allows_local_action(self) -> None:
         path = self.write("steps:\n  - uses: ./actions/sync-workflows\n")
         self.assertEqual(check_file(path), [])
