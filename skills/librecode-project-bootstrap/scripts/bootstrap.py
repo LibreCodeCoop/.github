@@ -12,6 +12,7 @@ from __future__ import annotations
 import argparse
 import json
 import re
+import sys
 from pathlib import Path
 from datetime import date
 
@@ -249,7 +250,13 @@ def create(args: argparse.Namespace) -> dict[str, object]:
         raise FileExistsError(f"refusing to overwrite existing files: {destination}")
     if destination.exists() and not destination.is_dir():
         raise ValueError(f"destination is not a directory: {destination}")
-    if license_id == "MIT" and args.license_file is None:
+    if license_id == "AGPL-3.0-or-later":
+        if args.license_file is not None:
+            raise ValueError("--license-file cannot replace the bundled canonical AGPL license")
+        license_text = (HERE / "assets/AGPL-3.0-or-later.txt").read_text(encoding="utf-8")
+    elif license_id == "MIT":
+        if args.license_file is not None:
+            raise ValueError("--license-file cannot replace the bundled MIT license")
         license_text = (HERE / "assets/MIT.txt").read_text(encoding="utf-8").replace(
             "Copyright (c) 2026 LibreCode Coop and contributors",
             f"Copyright (c) {YEAR} {owner}",
@@ -259,7 +266,7 @@ def create(args: argparse.Namespace) -> dict[str, object]:
         if len(license_text.strip()) < 100:
             raise ValueError("provided license text looks incomplete")
     else:
-        raise ValueError("provide --license-file containing the canonical full license text for non-MIT licenses")
+        raise ValueError("provide --license-file containing the canonical full license text for this alternative license")
     code = {"python": python_files, "php": php_files, "javascript": javascript_files}
     if language == "go":
         if not args.module or not re.fullmatch(r"[a-zA-Z0-9.-]+(?:/[a-zA-Z0-9._-]+)+", args.module):
@@ -274,16 +281,21 @@ def create(args: argparse.Namespace) -> dict[str, object]:
         + "\n".join(commands) + "\n```\n"
     )
     files[f"LICENSES/{license_id}.txt"] = license_text
-    json_like = [p for p in files if p.endswith(".json")]
-    reuse_paths = sorted(json_like + [f"LICENSES/{license_id}.txt"])
+    # REUSE recognizes LICENSES/ by convention: its texts retain their own authorship.
+    # Only JSON manifests need explicit annotations because JSON has no comment syntax.
+    json_manifests = sorted(p for p in files if p.endswith(".json"))
     files["REUSE.toml"] = (
         f"# SPDX-FileCopyrightText: {YEAR} {owner}\n# SPDX-License-Identifier: {license_id}\n"
-        "version = 1\n\n[[annotations]]\n"
-        + "path = [" + ", ".join(json.dumps(p) for p in reuse_paths) + "]\n"
-        'precedence = "aggregate"\n'
-        + "SPDX-FileCopyrightText = " + json.dumps(f"{YEAR} {owner}") + "\n"
-        + "SPDX-License-Identifier = " + json.dumps(license_id) + "\n"
+        "version = 1\n"
     )
+    if json_manifests:
+        files["REUSE.toml"] += (
+            "\n[[annotations]]\n"
+            + "path = [" + ", ".join(json.dumps(p) for p in json_manifests) + "]\n"
+            + 'precedence = "aggregate"\n'
+            + "SPDX-FileCopyrightText = " + json.dumps(f"{YEAR} {owner}") + "\n"
+            + "SPDX-License-Identifier = " + json.dumps(license_id) + "\n"
+        )
     for p in files:
         relative = Path(p)
         if relative.is_absolute() or ".." in relative.parts:
@@ -295,8 +307,11 @@ def create(args: argparse.Namespace) -> dict[str, object]:
         target.write_text(content, encoding="utf-8")
     return {
         "destination": str(destination), "language": language, "runtime": runtime,
-        "license": license_id, "files": sorted(files), "commands": commands,
-        "pending": [
+        "license": license_id,
+        "license_selection": "institutional-default" if not args.license_specified else "explicit",
+        "files": sorted(files), "commands": commands,
+        "pending": (["Non-default license: document the explicit LibreCode licensing exception and dependency compatibility review"]
+                    if license_id != "AGPL-3.0-or-later" else []) + [
             "project-specific static analysis/formatter not yet installed or exercised",
             "project-specific integration/security/coverage checks not yet defined",
             "REUSE external lint, vulnerability scanning and license review not yet executed",
@@ -313,13 +328,15 @@ def main() -> int:
     parser.add_argument("--language", required=True, choices=LANGUAGES)
     parser.add_argument("--runtime", required=True)
     parser.add_argument("--kind", default="cli")
-    parser.add_argument("--license", required=True)
+    parser.add_argument("--license", default="AGPL-3.0-or-later",
+                        help="SPDX license ID (LibreCode default: AGPL-3.0-or-later; alternatives require explicit review)")
     parser.add_argument("--license-file", type=Path)
     parser.add_argument("--copyright", required=True)
     parser.add_argument("--module", help="actual Go module path; mandatory for Go")
     parser.add_argument("--distribution", default="source")
     parser.add_argument("--destination", type=Path, required=True)
     args = parser.parse_args()
+    args.license_specified = any(arg == "--license" or arg.startswith("--license=") for arg in sys.argv[1:])
     try:
         result = create(args)
     except (ValueError, OSError) as exc:

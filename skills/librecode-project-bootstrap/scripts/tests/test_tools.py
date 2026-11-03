@@ -26,12 +26,13 @@ class BootstrapTest(unittest.TestCase):
         self.addCleanup(self.temp.cleanup)
         self.root = Path(self.temp.name)
 
-    def generate(self, language: str, runtime: str, name: str = "demo-project") -> tuple[Path, dict]:
+    def generate(self, language: str, runtime: str, name: str = "demo-project", license_id: str | None = None) -> tuple[Path, dict]:
         directory = self.root / language
         proc = run(
             sys.executable, str(SCRIPT_DIR / "bootstrap.py"),
             "--name", name, "--language", language, "--runtime", runtime,
-            "--license", "MIT", "--copyright", "Sample Project contributors",
+            *(["--license", license_id] if license_id else []),
+            "--copyright", "Sample Project contributors",
             "--kind", "cli", "--distribution", "source", "--destination", str(directory),
             *( ["--module", "example.org/" + name] if language == "go" else [] ),
         )
@@ -42,19 +43,24 @@ class BootstrapTest(unittest.TestCase):
         project, summary = self.generate("python", "3.11")
         self.assertEqual(summary["conformance"], "NOT_CERTIFIED")
         import tomllib
-        self.assertEqual(tomllib.loads((project / "pyproject.toml").read_text())["project"]["license"], "MIT")
+        self.assertEqual(tomllib.loads((project / "pyproject.toml").read_text())["project"]["license"], "AGPL-3.0-or-later")
+        self.assertEqual(summary["license_selection"], "institutional-default")
+        self.assertEqual((project / "LICENSES/AGPL-3.0-or-later.txt").read_text(),
+                         (SCRIPT_DIR.parent / "assets/AGPL-3.0-or-later.txt").read_text())
         self.assertEqual(run(sys.executable, "-m", "compileall", "-q", "src", "tests", cwd=project).returncode, 0)
         tests = run(sys.executable, "-m", "unittest", "discover", "-s", "tests", "-v", cwd=project)
         self.assertEqual(tests.returncode, 0, tests.stderr)
         self.assertIn("test_rejects_unknown_argument", tests.stderr)
         self.assertFalse((project / "Dockerfile").exists())
+        self.assertNotIn("LICENSES/AGPL-3.0-or-later.txt", (project / "REUSE.toml").read_text())
         self.assertEqual(evaluate(project)["summary"]["FAIL"], 0)
 
     @unittest.skipUnless(shutil.which("php"), "PHP is not installed")
     def test_php_cli_and_negative_test(self):
         project, summary = self.generate("php", "8.2")
         self.assertTrue((project / "composer.json").is_file())
-        self.assertEqual(json.loads((project / "composer.json").read_text())["license"], "MIT")
+        self.assertEqual(json.loads((project / "composer.json").read_text())["license"], "AGPL-3.0-or-later")
+        self.assertIn("SPDX-License-Identifier: AGPL-3.0-or-later", (project / "src/Application.php").read_text())
         lint = run("php", "tools/lint.php", cwd=project)
         self.assertEqual(lint.returncode, 0, lint.stdout + lint.stderr)
         tests = run("php", "tests/run.php", cwd=project)
@@ -67,6 +73,7 @@ class BootstrapTest(unittest.TestCase):
     @unittest.skipUnless(shutil.which("node"), "Node is not installed")
     def test_node_cli(self):
         project, _ = self.generate("javascript", "22")
+        self.assertEqual(json.loads((project / "package.json").read_text())["license"], "AGPL-3.0-or-later")
         self.assertEqual(run("node", "--check", "src/cli.js", cwd=project).returncode, 0)
         tests = run("node", "--test", cwd=project)
         self.assertEqual(tests.returncode, 0, tests.stdout + tests.stderr)
@@ -74,6 +81,7 @@ class BootstrapTest(unittest.TestCase):
     @unittest.skipUnless(shutil.which("go"), "Go is not installed")
     def test_go_cli(self):
         project, _ = self.generate("go", "1.23")
+        self.assertIn("SPDX-License-Identifier: AGPL-3.0-or-later", (project / "go.mod").read_text())
         self.assertEqual(run("go", "vet", "./...", cwd=project).returncode, 0)
         tests = run("go", "test", "./...", cwd=project)
         self.assertEqual(tests.returncode, 0, tests.stdout + tests.stderr)
@@ -89,14 +97,42 @@ class BootstrapTest(unittest.TestCase):
         self.assertNotEqual(proc.returncode, 0)
         self.assertEqual((project / "README.md").read_text(), "keep")
 
-    def test_does_not_infer_non_mit_license_text(self):
+    def test_rejects_missing_text_for_other_license(self):
         proc = run(sys.executable, str(SCRIPT_DIR / "bootstrap.py"),
                    "--name", "demo", "--language", "python", "--runtime", "3.12",
-                   "--license", "AGPL-3.0-or-later", "--copyright", "Sample Project",
+                   "--license", "Apache-2.0", "--copyright", "Sample Project",
                    "--destination", str(self.root / "missing-license"))
         self.assertNotEqual(proc.returncode, 0)
         self.assertIn("--license-file", proc.stderr)
         self.assertFalse((self.root / "missing-license").exists())
+
+    def test_explicit_mit_is_allowed_but_not_the_default(self):
+        project, summary = self.generate("python", "3.11", license_id="MIT")
+        import tomllib
+        self.assertEqual(tomllib.loads((project / "pyproject.toml").read_text())["project"]["license"], "MIT")
+        self.assertEqual(summary["license_selection"], "explicit")
+        self.assertTrue(any("Non-default license" in issue for issue in summary["pending"]))
+        self.assertTrue((project / "LICENSES/MIT.txt").is_file())
+
+    def test_equals_style_license_flag_records_explicit_override(self):
+        project = self.root / "equals-style"
+        proc = run(sys.executable, str(SCRIPT_DIR / "bootstrap.py"),
+                   "--name", "equals-style", "--language", "python", "--runtime", "3.11",
+                   "--license=MIT", "--copyright", "Sample Project", "--destination", str(project))
+        self.assertEqual(proc.returncode, 0, proc.stderr)
+        self.assertEqual(json.loads(proc.stdout)["license_selection"], "explicit")
+
+    def test_cannot_override_bundled_agpl_text(self):
+        project = self.root / "unsafe-license"
+        custom = self.root / "fake-license.txt"
+        custom.write_text("INVALID " * 20)
+        proc = run(sys.executable, str(SCRIPT_DIR / "bootstrap.py"),
+                   "--name", "unsafe-license", "--language", "python", "--runtime", "3.12",
+                   "--license-file", str(custom), "--copyright", "Sample Project",
+                   "--destination", str(project))
+        self.assertNotEqual(proc.returncode, 0)
+        self.assertIn("cannot replace", proc.stderr)
+        self.assertFalse(project.exists())
 
 
 class AuditTest(unittest.TestCase):

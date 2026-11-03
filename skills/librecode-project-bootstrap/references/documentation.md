@@ -19,10 +19,10 @@ Generate only material needed for the project's distribution and operating model
 
 ## Licensing decisions
 
-- Ask for an SPDX license identifier. Do **not** default every new project to AGPL, although the inspected LibreCode PHP projects use it.
+- For new LibreCode-owned projects, default to **AGPL-3.0-or-later**, consistently with the institutionally stated policy and observed licensing. An explicitly requested different SPDX license remains possible after recording the rationale, rights-holder approval and dependency/distribution compatibility. Do not silently relicense an existing project or claim this preference is an enforced GitHub ruleset.
 - Verify legal compatibility of dependency licenses, assets and distribution method. Do not invent a new license from a short SPDX string.
 - For code/text supporting comments use `SPDX-FileCopyrightText` and `SPDX-License-Identifier`; for JSON/binary files supply `REUSE.toml` annotations or `.license` files. Keep complete canonical license texts in `LICENSES/`. Validate with `reuse lint`, not mere existence checks.
-- Existing `LibreCodeCoop/.github` content is licensed AGPL-3.0-or-later; introducing a Skill in that repository should follow its source file notices. Consumer output uses the explicitly selected project license, which can differ.
+- Existing `LibreCodeCoop/.github` content is licensed AGPL-3.0-or-later; the Skill source follows the same notices. New LibreCode consumer output uses AGPL-3.0-or-later by default and a different license only when deliberately selected and reviewed. Preserve existing licenses in audit mode.
 
 ## Avoid ephemeral noise
 

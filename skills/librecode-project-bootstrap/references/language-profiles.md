@@ -26,6 +26,6 @@ All commands are **candidates**: select a compatible current toolchain, install 
 
 ## Local bootstrap helper
 
-`python3 scripts/bootstrap.py --name demo --language python --runtime 3.12 --kind cli --license MIT --distribution source --destination /tmp/demo`
+`python3 scripts/bootstrap.py --name demo --language python --runtime 3.12 --kind cli --distribution source --copyright "LibreCode Coop and contributors" --destination /tmp/demo` (defaults to AGPL-3.0-or-later; use `--license MIT` only for a deliberate, documented exception)
 
 Supported deterministic minimal CLI stubs: `php`, `python`, `javascript`, `go`; for `typescript` and specialized application types, the Skill must assemble a proper package manifest/test/build via normal engineering work rather than emit an untested incomplete project. Every generated CLI has functional success and negative-argument tests; no production database or deployment infrastructure is added. Report missing third-party lint/static/toolchain checks explicitly until installed and run.
