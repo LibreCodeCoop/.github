@@ -33,6 +33,16 @@ consumers opt in to shared workflows through reviewable pull requests.
   enforcement remains **disabled** until each consumer produces and verifies
   that aggregate check.
 
+- `agent-skills-ci` is a **repository-scoped** active `ci-required` rule for
+  `LibreCodeCoop/agent-skills`, alongside `protected-branches`. Its producer
+  is the single `validate.yml` workflow: the summary depends on all actual
+  mandatory jobs, fails on failures/cancellations/unexpected skips/missing
+  results, and was verified on the public Agent Skills PR #1, including a
+  regression in REUSE that correctly blocked the aggregate. This policy must
+  still be applied through a separately reviewed governance run; the PR
+  changing this JSON does **not** apply it remotely. It does not activate
+  the disabled gate used by other repositories.
+
 The configuration expresses desired policy, not proof that a ruleset was
 already applied on GitHub. An organization-wide rollout is not automatic:
 the consumer must have the matching check before protection is enabled.

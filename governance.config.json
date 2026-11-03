@@ -135,6 +135,38 @@
         }
       ]
     },
+    "agent-skills-ci": {
+      "name": "Require validated Agent Skills CI",
+      "target": "branch",
+      "enforcement": "active",
+      "bypass_actors": [
+        {
+          "actor_id": 0,
+          "actor_type": "OrganizationAdmin",
+          "bypass_mode": "pull_request"
+        }
+      ],
+      "conditions": {
+        "ref_name": {
+          "include": ["~DEFAULT_BRANCH"],
+          "exclude": []
+        }
+      },
+      "rules": [
+        {
+          "type": "required_status_checks",
+          "parameters": {
+            "required_status_checks": [
+              {
+                "context": "ci-required"
+              }
+            ],
+            "strict_required_status_checks_policy": true,
+            "do_not_enforce_on_create": false
+          }
+        }
+      ]
+    },
     "organization-config-ci": {
       "name": "Require organization configuration CI",
       "target": "branch",
@@ -198,6 +230,12 @@
     }
   ],
   "repositories": {
+    "LibreCodeCoop/agent-skills": {
+      "policies": [
+        "protected-branches",
+        "agent-skills-ci"
+      ]
+    },
     "LibreCodeCoop/github-governance": {
       "policies": [
         "governance-ci"
