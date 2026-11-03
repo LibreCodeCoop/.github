@@ -26,6 +26,15 @@ jobs:
       - name: Run unit tests
         run: python3 -m unittest discover -s tests -p 'test_*.py'
 
+      - name: Verify bootstrap sample runtimes are installed
+        run: |
+          command -v php
+          command -v node
+          command -v go
+
+      - name: Exercise project bootstrap skill and generated samples
+        run: python3 -m unittest discover -s skills/librecode-project-bootstrap/scripts/tests -p 'test_*.py'
+
       - name: Verify vendored upstream sources
         run: python3 scripts/sync_upstream.py check upstream/sources.json
 
