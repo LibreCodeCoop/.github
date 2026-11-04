@@ -112,12 +112,44 @@ GitHub Actions. Manual plans permit drift for review before an authorized
 apply. A failed plan never changes GitHub settings, and passing the plan is
 not evidence that any pending change has been applied.
 
-New repositories are not protected automatically at creation time: run the
-privileged governance workflow with `repository` set to the new repository
-and `apply=true`, after inspecting its plan and authorizing the protected
-`ruleset-sync` environment. The scheduled scan detects unprovisioned public
-repositories, but does not itself install rulesets. Private and archived
-repositories are outside the configured public discovery scope.
+New repositories are not protected at the instant they are created: GitHub
+Actions in this `.github` repository do not receive the `repository.created`
+webhook of every repository in the organization. A **daily read-only scan**
+reports missing common rulesets as failed governance checks; it never writes.
+After reviewing the plan, use **Actions > GitHub governance > Run workflow**
+with `repository` set to the target repository, `apply=true` and the default
+`onboard_only=true`, and approve the `ruleset-sync` environment. The new mode:
+
+- creates **only** the missing organization-default ruleset;
+- refuses repositories with classic branch protection or no initialized
+  default branch;
+- leaves all existing rulesets, product CI/DCO requirements, metadata and
+  branch-protection settings untouched;
+- flags an existing divergent ruleset or conflicting direct-push bypass for
+  manual review, rather than changing it.
+
+The normal full-reconciliation mode remains possible only by setting
+`onboard_only=false` during an explicitly approved manual run. It must not be
+used merely to get an onboarding job green. The Apply token needs repository
+Administration (write) and Contents (read) and should be scoped to the named
+repository. The GitHub App must be installed on that repository. Private and
+archived repositories are outside the configured public discovery scope.
+
+**Nextcloud translation bot safeguard.** For repositories with
+`appinfo/info.xml`, the caller's `protected-branches` policy has a conditional
+`User`/`always` bypass for `nextcloud-bot` (GitHub user ID `20296731`). This
+allows direct translation pushes to `main`; the general policy does not grant
+this exception to non-Nextcloud repositories. Any additional active DCO or CI
+ruleset that covers these apps must independently preserve the bot bypass.
+Historical regressions are documented in LibreCodeCoop/profile_fields#148,
+LibreCodeCoop/extract#148 and LibreSign/libresign#8399/#9172. Never activate a
+new mandatory-check ruleset without verifying that it permits this account.
+
+New repositories with no default-branch commit are intentionally skipped until
+their contents can be classified. If a regular repository later becomes a
+Nextcloud app, reconcile its conditional bypass **before** enabling automated
+translations; a scheduled read-only scan can identify drift but cannot safely
+assume the repository's future purpose.
 
 The engine reconciles **rulesets**, not legacy branch protection. Both may
 apply simultaneously, and the separate legacy protection can block a PR even

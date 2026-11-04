@@ -8,6 +8,11 @@ on:
         required: false
         default: false
         type: boolean
+      onboard_only:
+        description: Safely add only missing default rulesets (default when applying); disable for a separately reviewed full reconciliation
+        required: false
+        default: true
+        type: boolean
       repository:
         description: Optional repository name (no owner); empty selects all public repositories
         required: false
@@ -20,7 +25,7 @@ on:
       - governance.config.json
       - .github/workflows/github-governance.yml
   schedule:
-    - cron: '17 6 * * 1'
+      - cron: '17 6 * * *'
 
 permissions:
   contents: read
@@ -42,7 +47,7 @@ jobs:
           persist-credentials: false
 
       - name: Plan repository governance (read only)
-        uses: LibreCodeCoop/github-governance@0cbd31b136c0a1dd7dcaf805924aacd3e9f0ba71 # public planning support; pin immutable commit
+        uses: LibreCodeCoop/github-governance@b5ec5e90782e685bac7577eea22fa4d346f59a41 # public planning support; pin immutable commit
         with:
           token: ${{ github.token }}
           organization: ${{ inputs.repository == '' && 'LibreCodeCoop' || '' }}
@@ -77,12 +82,15 @@ jobs:
           owner: LibreCodeCoop # zizmor: ignore[github-app] governance is explicitly organization-scoped
           repositories: ${{ inputs.repository }}
           permission-administration: write
+          # Needed to identify Nextcloud apps via appinfo/info.xml and inspect default branches.
+          permission-contents: read
 
       - name: Apply repository governance
-        uses: LibreCodeCoop/github-governance@0cbd31b136c0a1dd7dcaf805924aacd3e9f0ba71 # public planning support; pin immutable commit
+        uses: LibreCodeCoop/github-governance@b5ec5e90782e685bac7577eea22fa4d346f59a41 # public planning support; pin immutable commit
         with:
           token: ${{ steps.app-token.outputs.token }}
           organization: ${{ inputs.repository == '' && 'LibreCodeCoop' || '' }}
           repository: ${{ inputs.repository != '' && format('LibreCodeCoop/{0}', inputs.repository) || '' }}
           config: ${{ github.workspace }}/governance.config.json
           apply: 'true'
+          onboard-only: ${{ inputs.onboard_only && 'true' || 'false' }}
