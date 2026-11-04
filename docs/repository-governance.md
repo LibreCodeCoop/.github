@@ -130,9 +130,11 @@ with `repository` set to the target repository, `apply=true` and the default
 
 The normal full-reconciliation mode remains possible only by setting
 `onboard_only=false` during an explicitly approved manual run. It must not be
-used merely to get an onboarding job green. The Apply token needs repository
-Administration (write) and Contents (read) and should be scoped to the named
-repository. The GitHub App must be installed on that repository. Private and
+used merely to get an onboarding job green. The Apply GitHub App token needs
+repository Administration (write) only and should be scoped to the named
+repository. The separate caller `GITHUB_TOKEN` supplies read-only public
+repository content classification; it is never used for administration or
+mutations. The GitHub App must be installed on that repository. Private and
 archived repositories are outside the configured public discovery scope.
 
 **Nextcloud translation bot safeguard.** For repositories with

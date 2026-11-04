@@ -52,7 +52,9 @@ class GovernanceCiGateContractTest(unittest.TestCase):
         from pathlib import Path
         workflow = (ROOT / '.github/workflows/github-governance.yml').read_text()
         self.assertIn('onboard-only:', workflow)
-        self.assertIn('permission-contents: read', workflow)
+        self.assertIn('permission-administration: write', workflow)
+        self.assertNotIn('permission-contents: read', workflow)
+        self.assertIn('contents-token: ${{ github.token }}', workflow)
         self.assertIn('environment: ruleset-sync', workflow)
         self.assertIn('onboard_only:', workflow)
         self.assertIn("cron: '17 6 * * *'", workflow)

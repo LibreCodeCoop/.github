@@ -47,7 +47,7 @@ jobs:
           persist-credentials: false
 
       - name: Plan repository governance (read only)
-        uses: LibreCodeCoop/github-governance@07896408fd605204d1c7c95c71b0f5785fcf8287 # public planning support; pin immutable commit
+        uses: LibreCodeCoop/github-governance@76fcdc8ae250c81aeb055533c2741385ac9f0b7b # public planning support; pin immutable commit
         with:
           token: ${{ github.token }}
           organization: ${{ inputs.repository == '' && 'LibreCodeCoop' || '' }}
@@ -82,13 +82,14 @@ jobs:
           owner: LibreCodeCoop # zizmor: ignore[github-app] governance is explicitly organization-scoped
           repositories: ${{ inputs.repository }}
           permission-administration: write
-          # Needed to identify Nextcloud apps via appinfo/info.xml and inspect default branches.
-          permission-contents: read
+          # Content classification uses the caller's short-lived, read-only GITHUB_TOKEN.
+          # The privileged GitHub App must not require Contents permission.
 
       - name: Apply repository governance
-        uses: LibreCodeCoop/github-governance@07896408fd605204d1c7c95c71b0f5785fcf8287 # public planning support; pin immutable commit
+        uses: LibreCodeCoop/github-governance@76fcdc8ae250c81aeb055533c2741385ac9f0b7b # public planning support; pin immutable commit
         with:
           token: ${{ steps.app-token.outputs.token }}
+          contents-token: ${{ github.token }}
           organization: ${{ inputs.repository == '' && 'LibreCodeCoop' || '' }}
           repository: ${{ inputs.repository != '' && format('LibreCodeCoop/{0}', inputs.repository) || '' }}
           config: ${{ github.workspace }}/governance.config.json
