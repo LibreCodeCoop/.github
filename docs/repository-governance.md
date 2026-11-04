@@ -97,6 +97,76 @@ Adding a new mandatory job requires updating the coordinator contract.
 The policy uses `strict_required_status_checks_policy: true`, requiring an
 up-to-date branch when enforcement is activated.
 
+## Common ruleset verification and repository onboarding
+
+The `protected-branches` policy is the default for eligible public,
+non-archived repositories, including newly created repositories. It governs
+reviews, Code Owner approval, resolved conversations, deletion and force-push
+restrictions, and PR-only bypass for authorized administrators and maintainers.
+Repository-specific CI status checks are not part of this shared policy.
+
+Scheduled and configuration-change workflows run a **read-only** organization
+plan. If any eligible repository is missing a required common ruleset or its
+configuration drifts, the plan fails so that the deviation is visible in
+GitHub Actions. Manual plans permit drift for review before an authorized
+apply. A failed plan never changes GitHub settings, and passing the plan is
+not evidence that any pending change has been applied.
+
+New repositories are not protected at the instant they are created: GitHub
+Actions in this `.github` repository do not receive the `repository.created`
+webhook of every repository in the organization. A **daily read-only scan**
+reports missing common rulesets as failed governance checks; it never writes.
+After reviewing the plan, use **Actions > GitHub governance > Run workflow**
+with `repository` set to the target repository, `apply=true` and the default
+`onboard_only=true`, and approve the `ruleset-sync` environment. The new mode:
+
+- creates **only** the missing organization-default ruleset;
+- refuses repositories with classic branch protection or no initialized
+  default branch;
+- leaves all existing rulesets, product CI/DCO requirements, metadata and
+  branch-protection settings untouched;
+- flags an existing divergent ruleset or conflicting direct-push bypass for
+  manual review, rather than changing it.
+
+The normal full-reconciliation mode remains possible only by setting
+`onboard_only=false` during an explicitly approved manual run. It must not be
+used merely to get an onboarding job green. The Apply token needs repository
+Administration (write) and Contents (read) and should be scoped to the named
+repository. The GitHub App must be installed on that repository. Private and
+archived repositories are outside the configured public discovery scope.
+
+**Nextcloud translation bot safeguard.** For repositories with
+`appinfo/info.xml`, the caller's `protected-branches` policy has a conditional
+`User`/`always` bypass for `nextcloud-bot` (GitHub user ID `20296731`). This
+allows direct translation pushes to `main`; the general policy does not grant
+this exception to non-Nextcloud repositories. Any additional active DCO or CI
+ruleset that covers these apps must independently preserve the bot bypass.
+Historical regressions are documented in LibreCodeCoop/profile_fields#148,
+LibreCodeCoop/extract#148 and LibreSign/libresign#8399/#9172. Never activate a
+new mandatory-check ruleset without verifying that it permits this account.
+
+New repositories with no default-branch commit are intentionally skipped until
+their contents can be classified. If a regular repository later becomes a
+Nextcloud app, reconcile its conditional bypass **before** enabling automated
+translations; a scheduled read-only scan can identify drift but cannot safely
+assume the repository's future purpose.
+
+The engine reconciles **rulesets**, not legacy branch protection. Both may
+apply simultaneously, and the separate legacy protection can block a PR even
+when the common ruleset allows a bypass. Check both policy surfaces:
+
+```sh
+gh api repos/OWNER/REPO/rules/branches/BRANCH
+gh api repos/OWNER/REPO/branches/BRANCH/protection
+```
+
+A 404 for the second command indicates no classic branch protection. Before
+removing one, compare its mandatory checks, signatures, reviews and other
+restrictions with the effective rulesets. A repository-scoped migration must
+preserve any stricter requirements and be reviewed independently; the common
+plan does not delete classic branch protection or configure product-specific
+CI checks.
+
 ## Bypass and auto-merge
 
 The proposed CI gate allows organization administrators to bypass the
@@ -117,9 +187,10 @@ checks. GitHub auto-merge waits for required checks only, not every workflow.
 
 Merging changes to the JSON does not apply them. The `ruleset-sync`
 environment protects the GitHub App credential with administration-write
-permission and currently requires approval for scheduled plans as well as
-manual apply. Unattended drift monitoring needs a separate security review;
-do not remove that protection solely to avoid approvals.
+permission and requires approval for privileged manual apply. Scheduled
+read-only plans do **not** require environment approval and never modify
+repository policies. Do not remove the approval gate to enable unattended
+provisioning without a separate security design and review.
 
 The [dependency auto-merge policy](dependency-update-policy.md) covers a
 different workflow and must not be confused with ruleset bypass.

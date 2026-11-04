@@ -33,6 +33,30 @@ class GovernanceCiGateContractTest(unittest.TestCase):
             },
         }])
 
+    def test_nextcloud_translation_bot_keeps_direct_push_bypass(self) -> None:
+        conditions = [entry for entry in self.config['conditions']
+                      if entry['when']['file_exists'] == 'appinfo/info.xml']
+        self.assertEqual(len(conditions), 1)
+        self.assertIn({
+            'actor_id': 20296731,
+            'actor_type': 'User',
+            'bypass_mode': 'always',
+        }, conditions[0]['add_bypass_actors']['protected-branches'])
+        common = self.config['policies']['protected-branches']
+        self.assertNotIn({'actor_id': 20296731, 'actor_type': 'User', 'bypass_mode': 'always'},
+                         common['bypass_actors'])
+
+    def test_common_governance_onboarding_is_scoped_and_approval_gated(self) -> None:
+        config = self.config
+        self.assertEqual(config['defaults']['policies'], ['protected-branches'])
+        from pathlib import Path
+        workflow = (ROOT / '.github/workflows/github-governance.yml').read_text()
+        self.assertIn('onboard-only:', workflow)
+        self.assertIn('permission-contents: read', workflow)
+        self.assertIn('environment: ruleset-sync', workflow)
+        self.assertIn('onboard_only:', workflow)
+        self.assertIn("cron: '17 6 * * *'", workflow)
+
     def test_selected_repositories_use_same_policy(self) -> None:
         repositories = self.config["repositories"]
         for name in (
