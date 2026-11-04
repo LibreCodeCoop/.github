@@ -97,6 +97,39 @@ Adding a new mandatory job requires updating the coordinator contract.
 The policy uses `strict_required_status_checks_policy: true`, requiring an
 up-to-date branch when enforcement is activated.
 
+## Legacy branch protection and MCP-specific CI
+
+The governance reconciler manages **repository rulesets**, not classic branch
+protection entries. A ruleset can be correct while a separate legacy branch
+protection requires strict up-to-date checks and prevents an otherwise
+permitted administrator bypass. Inspect both surfaces when onboarding a new
+repository or investigating blocked merges:
+
+```sh
+gh api repos/OWNER/REPO/rules/branches/main
+gh api repos/OWNER/REPO/branches/main/protection
+```
+
+A 404 on the second call means no classic protection; it is not an error for
+a ruleset-managed repository. Never remove a legacy protection until required
+checks, signature requirements and other relevant controls are represented
+in reviewed rulesets and verified as effective. Removal is a separately
+approved, repository-scoped privileged migration, not an automatic
+consequence of a successful governance plan.
+
+The `akaunting-mcp` repository has a dedicated additional ruleset with its
+14 mandatory GitHub Actions checks (bound to the Actions integration) and
+required commit signatures on the default branch. Its organization-standard
+review, Code Owner and administrator-bypass ruleset remains independent.
+When checks are renamed, update the explicit repository policy and validate
+the new contexts before applying changes. This additional policy must **not**
+be added to unrelated repositories.
+
+Scheduled governance runs are intentionally read-only. Privileged application
+requires `workflow_dispatch` with `apply=true` and authorization through the
+`ruleset-sync` environment, protecting the organization from unattended
+changes to branch security policy.
+
 ## Bypass and auto-merge
 
 The proposed CI gate allows organization administrators to bypass the

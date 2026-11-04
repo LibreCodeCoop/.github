@@ -217,6 +217,105 @@
       "policies": [
         "organization-config-ci"
       ]
+    },
+    "LibreCodeCoop/akaunting-mcp": {
+      "rulesets": [
+        {
+          "name": "Akaunting MCP required CI and signatures",
+          "target": "branch",
+          "enforcement": "active",
+          "bypass_actors": [
+            {
+              "actor_id": 0,
+              "actor_type": "OrganizationAdmin",
+              "bypass_mode": "pull_request"
+            },
+            {
+              "actor_id": 11527171,
+              "actor_type": "Team",
+              "bypass_mode": "pull_request"
+            }
+          ],
+          "conditions": {
+            "ref_name": {
+              "include": [
+                "~DEFAULT_BRANCH"
+              ],
+              "exclude": []
+            }
+          },
+          "rules": [
+            {
+              "type": "required_status_checks",
+              "parameters": {
+                "required_status_checks": [
+                  {
+                    "context": "GitHub Actions security analysis",
+                    "integration_id": 15368
+                  },
+                  {
+                    "context": "GitHub Actions syntax and expressions",
+                    "integration_id": 15368
+                  },
+                  {
+                    "context": "Validate manifest, lock and security advisories",
+                    "integration_id": 15368
+                  },
+                  {
+                    "context": "Synthetic MCP, OAuth and private Compose topology",
+                    "integration_id": 15368
+                  },
+                  {
+                    "context": "PHP 8.5 syntax",
+                    "integration_id": 15368
+                  },
+                  {
+                    "context": "PHP-CS-Fixer",
+                    "integration_id": 15368
+                  },
+                  {
+                    "context": "PHPStan PHP 8.5",
+                    "integration_id": 15368
+                  },
+                  {
+                    "context": "PHPUnit PHP 8.5",
+                    "integration_id": 15368
+                  },
+                  {
+                    "context": "SPDX provenance and licensing",
+                    "integration_id": 15368
+                  },
+                  {
+                    "context": "Public source and metadata boundaries",
+                    "integration_id": 15368
+                  },
+                  {
+                    "context": "gitleaks",
+                    "integration_id": 15368
+                  },
+                  {
+                    "context": "Shell script quality",
+                    "integration_id": 15368
+                  },
+                  {
+                    "context": "DCO on each PR commit",
+                    "integration_id": 15368
+                  },
+                  {
+                    "context": "Conventional Commits on each PR commit",
+                    "integration_id": 15368
+                  }
+                ],
+                "strict_required_status_checks_policy": true,
+                "do_not_enforce_on_create": false
+              }
+            },
+            {
+              "type": "required_signatures"
+            }
+          ]
+        }
+      ]
     }
   }
 }
