@@ -117,10 +117,11 @@ in reviewed rulesets and verified as effective. Removal is a separately
 approved, repository-scoped privileged migration, not an automatic
 consequence of a successful governance plan.
 
-The `akaunting-mcp` repository has a dedicated additional ruleset with its
-14 mandatory GitHub Actions checks (bound to the Actions integration) and
-required commit signatures on the default branch. Its organization-standard
-review, Code Owner and administrator-bypass ruleset remains independent.
+The `akaunting-mcp` and `suitecrm-mcp` repositories each have a dedicated
+additional ruleset for their own required GitHub Actions checks (14 and 8,
+respectively) and required commit signatures on the default branch. The
+organization-standard review, Code Owner and administrator-bypass ruleset
+remains independent.
 When checks are renamed, update the explicit repository policy and validate
 the new contexts before applying changes. This additional policy must **not**
 be added to unrelated repositories.
