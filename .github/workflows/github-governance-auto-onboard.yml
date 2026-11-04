@@ -1,0 +1,80 @@
+# SPDX-FileCopyrightText: 2026 LibreCode coop and contributors
+# SPDX-License-Identifier: AGPL-3.0-or-later
+
+name: Automatic repository baseline protection
+
+on:
+  # GitHub Free has no organization-level ruleset for this organization.
+  # Scan periodically; the delay is not an immediate creation-time guarantee.
+  schedule:
+    - cron: '7,37 * * * *'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: librecode-repository-baseline-onboarding
+  cancel-in-progress: false
+
+jobs:
+  discover:
+    name: Discover public repositories missing a ruleset
+    if: vars.AUTO_RULESET_ONBOARDING_ENABLED == 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    outputs:
+      repositories: ${{ steps.discover.outputs.repositories }}
+    steps:
+      - name: Checkout trusted policy from main
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+          ref: main
+
+      - name: Discover candidates (read only)
+        id: discover
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: python3 scripts/discover_unprotected_repositories.py --organization LibreCodeCoop --output "$GITHUB_OUTPUT"
+
+  onboard:
+    name: Install missing baseline / ${{ matrix.repository }}
+    needs: discover
+    if: needs.discover.result == 'success' && needs.discover.outputs.repositories != '[]'
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    environment: ruleset-auto-onboard
+    strategy:
+      fail-fast: false
+      max-parallel: 4
+      matrix:
+        repository: ${{ fromJSON(needs.discover.outputs.repositories) }}
+    permissions:
+      contents: read
+    steps:
+      - name: Checkout trusted policy from main
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+          ref: main
+
+      - name: Mint repository-scoped GitHub App token
+        id: app-token
+        uses: actions/create-github-app-token@64ab729a6294000f5aa4a4bc0b73d1f32bc45510 # v3.3.0
+        with:
+          client-id: ${{ vars.AUTO_RULESET_APP_CLIENT_ID }}
+          private-key: ${{ secrets.AUTO_RULESET_APP_PRIVATE_KEY }}
+          owner: LibreCodeCoop # zizmor: ignore[github-app] tokens must be scoped to the requested repository
+          repositories: ${{ matrix.repository }}
+          permission-administration: write
+          permission-contents: read
+
+      - name: Create missing default ruleset only
+        uses: LibreCodeCoop/github-governance@07896408fd605204d1c7c95c71b0f5785fcf8287 # pinned reviewed baseline-only engine
+        with:
+          token: ${{ steps.app-token.outputs.token }}
+          repository: LibreCodeCoop/${{ matrix.repository }}
+          config: ${{ github.workspace }}/governance.config.json
+          apply: 'true'
+          onboard-only: 'true'

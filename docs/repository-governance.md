@@ -33,15 +33,14 @@ consumers opt in to shared workflows through reviewable pull requests.
   enforcement remains **disabled** until each consumer produces and verifies
   that aggregate check.
 
-- `agent-skills-ci` is a **repository-scoped** active `ci-required` rule for
-  `LibreCodeCoop/agent-skills`, alongside `protected-branches`. Its producer
-  is the single `validate.yml` workflow: the summary depends on all actual
-  mandatory jobs, fails on failures/cancellations/unexpected skips/missing
-  results, and was verified on the public Agent Skills PR #1, including a
-  regression in REUSE that correctly blocked the aggregate. This policy must
-  still be applied through a separately reviewed governance run; the PR
-  changing this JSON does **not** apply it remotely. It does not activate
-  the disabled gate used by other repositories.
+- `required-ci-gate-active` shares the **same `Require CI` ruleset contract**
+  as the staged `required-ci-gate`, with only enforcement enabled. It is
+  selected for `LibreCodeCoop/agent-skills`, whose `ci-required` producer
+  passed on its merged PR #1. The default `protected-branches` ruleset is
+  inherited automatically; no project-specific copy is required. Other staged
+  repositories keep their disabled CI rule until individually verified. This
+  JSON change does **not** apply CI rules remotely: a separate reviewed plan
+  and authorized Apply is still required.
 
 The configuration expresses desired policy, not proof that a ruleset was
 already applied on GitHub. An organization-wide rollout is not automatic:
@@ -133,3 +132,47 @@ do not remove that protection solely to avoid approvals.
 
 The [dependency auto-merge policy](dependency-update-policy.md) covers a
 different workflow and must not be confused with ruleset bypass.
+
+## Automatic baseline onboarding for new public repositories
+
+The [automatic onboarding workflow](../.github/workflows/github-governance-auto-onboard.yml)
+checks for new eligible **public** repositories twice an hour. Its discovery
+uses a read-only token, validates repository names and existence of the default
+branch, and selects only repositories that currently have **no rulesets**.
+Existing custom rulesets are treated as manual exceptions and are never
+rewritten or deleted. Once a ruleset already exists, automatic provisioning
+leaves it untouched, even if it differs from the institutional default.
+
+For each candidate, a short-lived GitHub App token is scoped to **one repo**.
+The pinned shared engine runs `onboard-only=true`, checking live rulesets and
+classic branch protection again immediately before creating the missing
+institutional `protected-branches` rule. Any ambiguity, API error, missing
+permission or manual protection fails closed for review. This workflow **does
+not** change existing rules, enable CI checks, update metadata, remove bypasses
+or perform full reconciliation.
+
+**One-time configuration before activation:**
+
+1. Configure a dedicated `ruleset-auto-onboard` Actions environment with a
+   deployment restriction to protected `main`. It has no human approval
+   requirement, unlike `ruleset-sync`, because onboarding is scheduled.
+2. Set `AUTO_RULESET_APP_CLIENT_ID` as an environment variable and
+   `AUTO_RULESET_APP_PRIVATE_KEY` as an environment secret. The dedicated
+   GitHub App installation must have Administration (write) and Contents
+   (read) on the managed public repositories; each token is restricted by the
+   job to the selected repository. Do not relocate or expose the privileged
+   `ruleset-sync` credentials.
+3. After an independent review of this credential boundary and `main`
+   protection, set the **repository variable**
+   `AUTO_RULESET_ONBOARDING_ENABLED=true`. Until then, the new workflow is
+   intentionally disabled.
+4. Run the workflow manually once, inspect the resulting scope and GitHub
+   rulesets, then let the schedule handle subsequent new public repositories.
+
+GitHub scheduled workflows are best effort. **This is eventual onboarding, not
+an instantaneous guarantee at repository creation time.** Empty repositories
+are skipped until their default branch is initialized. Private repositories
+remain outside the GitHub Free-supported ruleset scope. A local exception may
+add restrictions, but cannot silently weaken an existing institutional
+ruleset. Policy changes and exceptional reconciliation of existing rules
+continue to require a reviewed `ruleset-sync` Apply.
