@@ -68,6 +68,22 @@ class GovernanceCiGateContractTest(unittest.TestCase):
             with self.subTest(repository=name):
                 self.assertEqual(repositories[name]["policies"], ["required-ci-gate"])
 
+    def test_active_ci_gate_is_reusable_and_isolated_from_staged_consumers(self) -> None:
+        self.assertEqual(
+            self.config["repositories"]["LibreCodeCoop/agent-skills"]["policies"],
+            ["required-ci-gate-active"],
+        )
+        policies = self.config["policies"]
+        active = policies["required-ci-gate-active"]
+        staged = policies["required-ci-gate"]
+        self.assertEqual(active, {**staged, "enforcement": "active"})
+        self.assertEqual(active["name"], staged["name"])
+        self.assertEqual(active["rules"][0]["parameters"]["required_status_checks"], [
+            {"context": "ci-required"},
+        ])
+        self.assertEqual(staged["enforcement"], "disabled")
+        self.assertEqual(self.config["defaults"]["policies"], ["protected-branches"])
+
     def test_review_and_existing_governance_checks_stay_separate(self) -> None:
         self.assertEqual(self.config["defaults"]["policies"], ["protected-branches"])
         policies = self.config["policies"]
