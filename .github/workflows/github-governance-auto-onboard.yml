@@ -70,7 +70,7 @@ jobs:
           permission-administration: write
 
       - name: Create missing default ruleset only
-        uses: LibreCodeCoop/github-governance@76fcdc8ae250c81aeb055533c2741385ac9f0b7b # pinned reviewed baseline-only engine
+        uses: LibreCodeCoop/github-governance@1f0e4a80cf44cd6762eb3d0144200fd51fc2b07d # pinned reviewed baseline-only engine
         with:
           token: ${{ steps.app-token.outputs.token }}
           contents-token: ${{ github.token }}

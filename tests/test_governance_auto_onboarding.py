@@ -97,6 +97,18 @@ class BaselineDiscoveryTest(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, "Too many candidates"):
             module.discover(api, "LibreCodeCoop")
 
+    def test_governance_workflows_share_reviewed_engine_pin(self):
+        import re
+
+        primary = (ROOT / ".github/workflows/github-governance.yml").read_text(encoding="utf-8")
+        onboarding = WORKFLOW.read_text(encoding="utf-8")
+        pattern = r"uses: LibreCodeCoop/github-governance@([0-9a-f]{40})"
+        main_pins = re.findall(pattern, primary)
+        onboarding_pins = re.findall(pattern, onboarding)
+        self.assertEqual(len(main_pins), 2)
+        self.assertEqual(len(onboarding_pins), 1)
+        self.assertEqual(set(main_pins), set(onboarding_pins))
+
     def test_workflow_requires_opt_in_and_never_performs_bulk_reconciliation(self):
         workflow = WORKFLOW.read_text(encoding="utf-8")
         self.assertIn("AUTO_RULESET_ONBOARDING_ENABLED == 'true'", workflow)
