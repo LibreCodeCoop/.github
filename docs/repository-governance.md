@@ -97,39 +97,43 @@ Adding a new mandatory job requires updating the coordinator contract.
 The policy uses `strict_required_status_checks_policy: true`, requiring an
 up-to-date branch when enforcement is activated.
 
-## Legacy branch protection and MCP-specific CI
+## Common ruleset verification and repository onboarding
 
-The governance reconciler manages **repository rulesets**, not classic branch
-protection entries. A ruleset can be correct while a separate legacy branch
-protection requires strict up-to-date checks and prevents an otherwise
-permitted administrator bypass. Inspect both surfaces when onboarding a new
-repository or investigating blocked merges:
+The `protected-branches` policy is the default for eligible public,
+non-archived repositories, including newly created repositories. It governs
+reviews, Code Owner approval, resolved conversations, deletion and force-push
+restrictions, and PR-only bypass for authorized administrators and maintainers.
+Repository-specific CI status checks are not part of this shared policy.
+
+Scheduled and configuration-change workflows run a **read-only** organization
+plan. If any eligible repository is missing a required common ruleset or its
+configuration drifts, the plan fails so that the deviation is visible in
+GitHub Actions. Manual plans permit drift for review before an authorized
+apply. A failed plan never changes GitHub settings, and passing the plan is
+not evidence that any pending change has been applied.
+
+New repositories are not protected automatically at creation time: run the
+privileged governance workflow with `repository` set to the new repository
+and `apply=true`, after inspecting its plan and authorizing the protected
+`ruleset-sync` environment. The scheduled scan detects unprovisioned public
+repositories, but does not itself install rulesets. Private and archived
+repositories are outside the configured public discovery scope.
+
+The engine reconciles **rulesets**, not legacy branch protection. Both may
+apply simultaneously, and the separate legacy protection can block a PR even
+when the common ruleset allows a bypass. Check both policy surfaces:
 
 ```sh
-gh api repos/OWNER/REPO/rules/branches/main
-gh api repos/OWNER/REPO/branches/main/protection
+gh api repos/OWNER/REPO/rules/branches/BRANCH
+gh api repos/OWNER/REPO/branches/BRANCH/protection
 ```
 
-A 404 on the second call means no classic protection; it is not an error for
-a ruleset-managed repository. Never remove a legacy protection until required
-checks, signature requirements and other relevant controls are represented
-in reviewed rulesets and verified as effective. Removal is a separately
-approved, repository-scoped privileged migration, not an automatic
-consequence of a successful governance plan.
-
-The `akaunting-mcp` and `suitecrm-mcp` repositories each have a dedicated
-additional ruleset for their own required GitHub Actions checks (14 and 8,
-respectively) and required commit signatures on the default branch. The
-organization-standard review, Code Owner and administrator-bypass ruleset
-remains independent.
-When checks are renamed, update the explicit repository policy and validate
-the new contexts before applying changes. This additional policy must **not**
-be added to unrelated repositories.
-
-Scheduled governance runs are intentionally read-only. Privileged application
-requires `workflow_dispatch` with `apply=true` and authorization through the
-`ruleset-sync` environment, protecting the organization from unattended
-changes to branch security policy.
+A 404 for the second command indicates no classic branch protection. Before
+removing one, compare its mandatory checks, signatures, reviews and other
+restrictions with the effective rulesets. A repository-scoped migration must
+preserve any stricter requirements and be reviewed independently; the common
+plan does not delete classic branch protection or configure product-specific
+CI checks.
 
 ## Bypass and auto-merge
 

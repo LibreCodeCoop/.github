@@ -42,14 +42,16 @@ jobs:
           persist-credentials: false
 
       - name: Plan repository governance (read only)
-        uses: LibreCodeCoop/github-governance@452ee9ea1891915cc2ca9ee0800d6999dbb8f201 # public planning support; pin immutable commit
+        uses: LibreCodeCoop/github-governance@0cbd31b136c0a1dd7dcaf805924aacd3e9f0ba71 # public planning support; pin immutable commit
         with:
           token: ${{ github.token }}
           organization: ${{ inputs.repository == '' && 'LibreCodeCoop' || '' }}
           repository: ${{ inputs.repository != '' && format('LibreCodeCoop/{0}', inputs.repository) || '' }}
           config: ${{ github.workspace }}/governance.config.json
           public-discovery: ${{ inputs.repository == '' && 'true' || 'false' }}
-          allow-drift: 'true'
+          # Scheduled and push plans must report common-policy drift as failure.
+          # Manual plans remain inspectable, including before a privileged apply.
+          allow-drift: ${{ github.event_name == 'workflow_dispatch' && 'true' || 'false' }}
           apply: 'false'
 
   apply:
@@ -77,7 +79,7 @@ jobs:
           permission-administration: write
 
       - name: Apply repository governance
-        uses: LibreCodeCoop/github-governance@452ee9ea1891915cc2ca9ee0800d6999dbb8f201 # public planning support; pin immutable commit
+        uses: LibreCodeCoop/github-governance@0cbd31b136c0a1dd7dcaf805924aacd3e9f0ba71 # public planning support; pin immutable commit
         with:
           token: ${{ steps.app-token.outputs.token }}
           organization: ${{ inputs.repository == '' && 'LibreCodeCoop' || '' }}
