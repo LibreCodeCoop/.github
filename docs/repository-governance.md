@@ -158,8 +158,10 @@ or perform full reconciliation.
    requirement, unlike `ruleset-sync`, because onboarding is scheduled.
 2. Set `AUTO_RULESET_APP_CLIENT_ID` as an environment variable and
    `AUTO_RULESET_APP_PRIVATE_KEY` as an environment secret. The dedicated
-   GitHub App installation must have Administration (write) and Contents
-   (read) on the managed public repositories; each token is restricted by the
+   GitHub App installation must have Administration (write) only on the managed public repositories. A
+   separate short-lived, read-only `github.token` supplies public content
+   classification, without granting the App Contents (read); each App token
+   is restricted by the
    job to the selected repository. Do not relocate or expose the privileged
    `ruleset-sync` credentials.
 3. After an independent review of this credential boundary and `main`

@@ -103,6 +103,8 @@ class BaselineDiscoveryTest(unittest.TestCase):
         self.assertIn("environment: ruleset-auto-onboard", workflow)
         self.assertIn("onboard-only: 'true'", workflow)
         self.assertIn("permission-administration: write", workflow)
+        self.assertNotIn("permission-contents: read", workflow)
+        self.assertIn("contents-token: ${{ github.token }}", workflow)
         self.assertIn("repositories: ${{ matrix.repository }}", workflow)
         self.assertIn("max-parallel: 4", workflow)
         self.assertNotIn("pull_request_target:", workflow)

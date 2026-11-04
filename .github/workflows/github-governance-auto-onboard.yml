@@ -68,12 +68,12 @@ jobs:
           owner: LibreCodeCoop # zizmor: ignore[github-app] tokens must be scoped to the requested repository
           repositories: ${{ matrix.repository }}
           permission-administration: write
-          permission-contents: read
 
       - name: Create missing default ruleset only
-        uses: LibreCodeCoop/github-governance@07896408fd605204d1c7c95c71b0f5785fcf8287 # pinned reviewed baseline-only engine
+        uses: LibreCodeCoop/github-governance@76fcdc8ae250c81aeb055533c2741385ac9f0b7b # pinned reviewed baseline-only engine
         with:
           token: ${{ steps.app-token.outputs.token }}
+          contents-token: ${{ github.token }}
           repository: LibreCodeCoop/${{ matrix.repository }}
           config: ${{ github.workspace }}/governance.config.json
           apply: 'true'
