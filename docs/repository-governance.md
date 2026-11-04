@@ -187,9 +187,10 @@ checks. GitHub auto-merge waits for required checks only, not every workflow.
 
 Merging changes to the JSON does not apply them. The `ruleset-sync`
 environment protects the GitHub App credential with administration-write
-permission and currently requires approval for scheduled plans as well as
-manual apply. Unattended drift monitoring needs a separate security review;
-do not remove that protection solely to avoid approvals.
+permission and requires approval for privileged manual apply. Scheduled
+read-only plans do **not** require environment approval and never modify
+repository policies. Do not remove the approval gate to enable unattended
+provisioning without a separate security design and review.
 
 The [dependency auto-merge policy](dependency-update-policy.md) covers a
 different workflow and must not be confused with ruleset bypass.
