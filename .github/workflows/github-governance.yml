@@ -47,7 +47,7 @@ jobs:
           persist-credentials: false
 
       - name: Plan repository governance (read only)
-        uses: LibreCodeCoop/github-governance@81a2b08904c42133ce0cbb98f4e2222f9f234a9f # public planning support; pin immutable commit
+        uses: LibreCodeCoop/github-governance@07896408fd605204d1c7c95c71b0f5785fcf8287 # public planning support; pin immutable commit
         with:
           token: ${{ github.token }}
           organization: ${{ inputs.repository == '' && 'LibreCodeCoop' || '' }}
@@ -86,7 +86,7 @@ jobs:
           permission-contents: read
 
       - name: Apply repository governance
-        uses: LibreCodeCoop/github-governance@81a2b08904c42133ce0cbb98f4e2222f9f234a9f # public planning support; pin immutable commit
+        uses: LibreCodeCoop/github-governance@07896408fd605204d1c7c95c71b0f5785fcf8287 # public planning support; pin immutable commit
         with:
           token: ${{ steps.app-token.outputs.token }}
           organization: ${{ inputs.repository == '' && 'LibreCodeCoop' || '' }}
