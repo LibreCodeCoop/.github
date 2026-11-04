@@ -46,15 +46,15 @@ class GovernanceCiGateContractTest(unittest.TestCase):
         self.assertNotIn({'actor_id': 20296731, 'actor_type': 'User', 'bypass_mode': 'always'},
                          common['bypass_actors'])
 
-    def test_common_governance_onboarding_does_not_declare_product_ci(self) -> None:
+    def test_common_governance_onboarding_is_scoped_and_approval_gated(self) -> None:
         config = self.config
         self.assertEqual(config['defaults']['policies'], ['protected-branches'])
-        self.assertNotIn('LibreCodeCoop/akaunting-mcp', config['repositories'])
-        self.assertNotIn('LibreCodeCoop/suitecrm-mcp', config['repositories'])
         from pathlib import Path
         workflow = (ROOT / '.github/workflows/github-governance.yml').read_text()
         self.assertIn('onboard-only:', workflow)
         self.assertIn('permission-contents: read', workflow)
+        self.assertIn('environment: ruleset-sync', workflow)
+        self.assertIn('onboard_only:', workflow)
         self.assertIn("cron: '17 6 * * *'", workflow)
 
     def test_selected_repositories_use_same_policy(self) -> None:
