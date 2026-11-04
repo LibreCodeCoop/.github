@@ -135,8 +135,8 @@
         }
       ]
     },
-    "agent-skills-ci": {
-      "name": "Require validated Agent Skills CI",
+    "required-ci-gate-active": {
+      "name": "Require CI",
       "target": "branch",
       "enforcement": "active",
       "bypass_actors": [
@@ -148,7 +148,9 @@
       ],
       "conditions": {
         "ref_name": {
-          "include": ["~DEFAULT_BRANCH"],
+          "include": [
+            "~DEFAULT_BRANCH"
+          ],
           "exclude": []
         }
       },
@@ -232,8 +234,7 @@
   "repositories": {
     "LibreCodeCoop/agent-skills": {
       "policies": [
-        "protected-branches",
-        "agent-skills-ci"
+        "required-ci-gate-active"
       ]
     },
     "LibreCodeCoop/github-governance": {
