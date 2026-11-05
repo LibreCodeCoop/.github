@@ -7,7 +7,7 @@ from pathlib import Path
 
 
 ROOT = Path(__file__).resolve().parents[1]
-RELEASE_TOOL_RELEASE_SHA = "30ba5d8a33089331d829f586546d34cd45a529d7"
+RELEASE_TOOL_RELEASE_SHA = "51355769089a6796c23d6c966108afbdaf858c32"
 SURFACES = (
     ROOT / "workflow-templates/prepare-release.yml",
     ROOT / "workflow-templates/nightly-release.yml",
