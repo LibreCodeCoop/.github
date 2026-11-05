@@ -22,6 +22,13 @@ class ReleaseToolPinsTest(unittest.TestCase):
         self.assertIn("post-merge-event: pull_request_target", content)
         self.assertIn('git fetch --quiet origin "+refs/heads/main:refs/remotes/origin/main"', content)
 
+    def test_publisher_blocks_stale_immutable_action_pin(self) -> None:
+        content = (ROOT / 'actions/nextcloud-appstore-publish/action.yml').read_text(encoding='utf-8')
+        self.assertIn('Verify publisher action matches current catalog', content)
+        self.assertIn('LibreCodeCoop/.github/main/actions/nextcloud-appstore-publish/action.yml', content)
+        self.assertIn('cmp --silent "${GITHUB_ACTION_PATH}/action.yml" "${catalog_action}"', content)
+        self.assertIn('exit 1', content)
+
     def test_release_tool_consumers_use_same_release(self) -> None:
         for path in SURFACES:
             content = path.read_text(encoding="utf-8")

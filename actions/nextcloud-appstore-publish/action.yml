@@ -40,6 +40,19 @@ inputs:
 runs:
   using: composite
   steps:
+    - name: Verify publisher action matches current catalog
+      shell: bash
+      run: |
+        set -euo pipefail
+        catalog_action="$(mktemp)"
+        trap 'rm -f "${catalog_action}"' EXIT
+        curl --fail --silent --show-error --location --retry 3 \
+          https://raw.githubusercontent.com/LibreCodeCoop/.github/main/actions/nextcloud-appstore-publish/action.yml \
+          --output "${catalog_action}"
+        if ! cmp --silent "${GITHUB_ACTION_PATH}/action.yml" "${catalog_action}"; then
+          echo "::error::The pinned App Store publisher differs from the current LibreCodeCoop/.github catalog. Synchronize the workflow template to refresh the immutable Action pin before releasing."
+          exit 1
+        fi
     - name: Check actor permission
       uses: LibreCodeCoop/release-tool/actions/authorization-check@30ba5d8a33089331d829f586546d34cd45a529d7 # v0.11.21
       with:
@@ -255,10 +268,10 @@ runs:
         cd "${APP_NAME}/build/artifacts"
         tar -zcvf "${APP_NAME}.tar.gz" "${APP_NAME}"
 
-    - name: Set up PHP 8.3 for release-tool
+    - name: Set up PHP 8.5 for release-tool
       uses: shivammathur/setup-php@f3e473d116dcccaddc5834248c87452386958240 # 2.37.2
       with:
-        php-version: '8.3'
+        php-version: '8.5'
         coverage: none
       env:
         GITHUB_TOKEN: ${{ inputs.github-token }}
