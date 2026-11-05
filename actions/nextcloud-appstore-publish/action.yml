@@ -41,6 +41,7 @@ runs:
   using: composite
   steps:
     - name: Verify publisher action matches current catalog
+      if: inputs.manual-recovery != 'true'
       shell: bash
       run: |
         set -euo pipefail

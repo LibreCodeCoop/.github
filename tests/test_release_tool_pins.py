@@ -25,6 +25,7 @@ class ReleaseToolPinsTest(unittest.TestCase):
     def test_publisher_blocks_stale_immutable_action_pin(self) -> None:
         content = (ROOT / 'actions/nextcloud-appstore-publish/action.yml').read_text(encoding='utf-8')
         self.assertIn('Verify publisher action matches current catalog', content)
+        self.assertIn("if: inputs.manual-recovery != 'true'", content)
         self.assertIn('LibreCodeCoop/.github/main/actions/nextcloud-appstore-publish/action.yml', content)
         self.assertIn('cmp --silent "${GITHUB_ACTION_PATH}/action.yml" "${catalog_action}"', content)
         self.assertIn('exit 1', content)
