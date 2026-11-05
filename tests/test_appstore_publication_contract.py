@@ -26,7 +26,7 @@ class AppStorePublicationContractTest(unittest.TestCase):
 
     def test_consumer_template_is_thin_wrapper(self) -> None:
         content = TEMPLATE.read_text(encoding="utf-8")
-        self.assertIn("LibreCodeCoop/.github/actions/nextcloud-appstore-publish@600b84354bdbb2da4fc32e9d4eecac1fcce60666", content)
+        self.assertRegex(content, r"uses: LibreCodeCoop/\.github/actions/nextcloud-appstore-publish@[0-9a-f]{40}")
         self.assertNotIn("\n        run: |", content)
         self.assertLessEqual(len(content.splitlines()), 40)
 
