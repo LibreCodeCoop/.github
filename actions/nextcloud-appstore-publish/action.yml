@@ -43,6 +43,8 @@ runs:
     - name: Verify publisher action matches current catalog
       if: inputs.manual-recovery != 'true'
       shell: bash
+      env:
+        GH_TOKEN: ${{ inputs.github-token }}
       run: |
         set -euo pipefail
         catalog_action="$(mktemp)"
@@ -52,6 +54,18 @@ runs:
           --output "${catalog_action}"
         if ! cmp --silent "${GITHUB_ACTION_PATH}/action.yml" "${catalog_action}"; then
           echo "::error::The pinned App Store publisher differs from the current LibreCodeCoop/.github catalog. Synchronize the workflow template to refresh the immutable Action pin before releasing."
+          exit 1
+        fi
+
+        pinned_shas="$(grep -oE 'LibreCodeCoop/release-tool/actions/[a-z-]+@[0-9a-f]{40}' "${GITHUB_ACTION_PATH}/action.yml" | sed -E 's/.*@//' | sort -u)"
+        if [[ ! "${pinned_shas}" =~ ^[0-9a-f]{40}$ ]]; then
+          echo "::error::The shared publisher must use one immutable release-tool revision."
+          exit 1
+        fi
+        latest_tag="$(gh api repos/LibreCodeCoop/release-tool/releases/latest --jq '.tag_name')"
+        latest_sha="$(gh api "repos/LibreCodeCoop/release-tool/git/ref/tags/${latest_tag}" --jq '.object.sha')"
+        if [[ "${pinned_shas}" != "${latest_sha}" ]]; then
+          echo "::error::The publisher pins release-tool ${pinned_shas}, but latest published ${latest_tag} is ${latest_sha}. Update all catalog pins before publishing."
           exit 1
         fi
     - name: Check actor permission

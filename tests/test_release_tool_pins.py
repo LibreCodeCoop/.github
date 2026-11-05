@@ -29,6 +29,10 @@ class ReleaseToolPinsTest(unittest.TestCase):
         self.assertIn('LibreCodeCoop/.github/main/actions/nextcloud-appstore-publish/action.yml', content)
         self.assertIn('cmp --silent "${GITHUB_ACTION_PATH}/action.yml" "${catalog_action}"', content)
         self.assertIn('exit 1', content)
+        self.assertIn('repos/LibreCodeCoop/release-tool/releases/latest', content)
+        self.assertIn('repos/LibreCodeCoop/release-tool/git/ref/tags/${latest_tag}', content)
+        self.assertIn('pinned_shas', content)
+        self.assertIn('latest_sha', content)
 
     def test_release_tool_consumers_use_same_release(self) -> None:
         for path in SURFACES:
