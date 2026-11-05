@@ -43,16 +43,13 @@ class ReleaseWorkflowArchitectureTest(unittest.TestCase):
         self.assertIn("contains(github.event.pull_request.body, '<!-- release-tool:preparation ')", content)
         self.assertNotIn("paths-ignore:", content)
 
-    def test_publisher_switches_to_php85_after_signing(self) -> None:
+    def test_publisher_preserves_app_php_until_release_tool_validation(self) -> None:
         content = PUBLISH.read_text()
-        self.assertNotIn('Set up PHP 8.3 for release-tool', content)
-        self.assertNotIn("php-version: '8.3'", content)
-        signing = content.index('php nextcloud/occ integrity:sign-app')
-        switch = content.index('name: Set up PHP 8.5 for release-tool')
-        self.assertLess(signing, switch)
-        validation = content.index('uses: LibreCodeCoop/release-tool/actions/artifact-validate@')
-        self.assertLess(switch, validation)
-        self.assertIn("php-version: '8.5'", content[switch:validation])
+        self.assertIn("php-version: ${{ steps.php_versions.outputs.php-min }}", content)
+        self.assertNotIn("name: Set up PHP 8.5 for release-tool", content)
+        signing = content.index("php nextcloud/occ integrity:sign-app")
+        validation = content.index("uses: LibreCodeCoop/release-tool/actions/artifact-validate@")
+        self.assertLess(signing, validation)
 
     def test_action_pins_are_immutable(self) -> None:
         for path in (NIGHTLY, PUBLISH, PREPARE):

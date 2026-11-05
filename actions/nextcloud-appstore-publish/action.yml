@@ -255,14 +255,6 @@ runs:
         cd "${APP_NAME}/build/artifacts"
         tar -zcvf "${APP_NAME}.tar.gz" "${APP_NAME}"
 
-    - name: Set up PHP 8.5 for release-tool
-      uses: shivammathur/setup-php@f3e473d116dcccaddc5834248c87452386958240 # 2.37.2
-      with:
-        php-version: '8.5'
-        coverage: none
-      env:
-        GITHUB_TOKEN: ${{ inputs.github-token }}
-
     - name: Validate release artifact
       uses: LibreCodeCoop/release-tool/actions/artifact-validate@51355769089a6796c23d6c966108afbdaf858c32 # v0.12.0
       with:
