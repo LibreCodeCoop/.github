@@ -7,7 +7,7 @@ from pathlib import Path
 
 
 ROOT = Path(__file__).resolve().parents[1]
-RELEASE_TOOL_RELEASE_SHA = "30ba5d8a33089331d829f586546d34cd45a529d7"
+RELEASE_TOOL_RELEASE_SHA = "51355769089a6796c23d6c966108afbdaf858c32"
 SURFACES = (
     ROOT / "workflow-templates/prepare-release.yml",
     ROOT / "workflow-templates/nightly-release.yml",
@@ -21,6 +21,11 @@ class ReleaseToolPinsTest(unittest.TestCase):
         self.assertIn("pipeline-reference-ref: refs/remotes/origin/main", content)
         self.assertIn("post-merge-event: pull_request_target", content)
         self.assertIn('git fetch --quiet origin "+refs/heads/main:refs/remotes/origin/main"', content)
+
+    def test_publisher_does_not_enforce_latest_release_at_runtime(self) -> None:
+        content = (ROOT / "actions/nextcloud-appstore-publish/action.yml").read_text(encoding="utf-8")
+        self.assertNotIn("Verify publisher action matches current catalog", content)
+        self.assertNotIn("repos/LibreCodeCoop/release-tool/releases/latest", content)
 
     def test_release_tool_consumers_use_same_release(self) -> None:
         for path in SURFACES:
