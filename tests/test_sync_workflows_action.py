@@ -268,13 +268,13 @@ class SyncWorkflowsActionTest(unittest.TestCase):
                 source, target, target / ".github/actions-lock.txt"
             )
 
-            self.assertTrue(report["changed"])
+            self.assertFalse(report["changed"])
+            self.assertTrue(report["blocked"])
             self.assertTrue(report["patch_failed"])
             self.assertEqual(report["failed"], ["sync.yml"])
-            self.assertEqual(
-                sync_module.parse_lock(target / ".github/actions-lock.txt")["sync.yml"],
-                sync_module.sha256(source_file),
-            )
+            self.assertEqual(target_file.read_text(encoding="utf-8"), "name: Old\n")
+            lock = sync_module.parse_lock_records(target / ".github/actions-lock.txt")
+            self.assertEqual(lock["sync.yml"].digest, old_hash)
 
     def test_removes_lock_entries_missing_from_catalog(self) -> None:
         temporary, source, target = self.fixture()

@@ -335,15 +335,21 @@ def sync(
                 unchanged.append(name)
             continue
 
-        shutil.copyfile(source_file, target_file)
-        patch_ok, patch_message = apply_patch(target, target_file)
+        # Evaluate the upstream file and its local patch in isolation first.
+        # Never replace the last known-good workflow or advance its lock on failure.
+        expected, patch_ok, patch_message = render_expected(
+            source_file, target, target_file
+        )
+        if not patch_ok or expected is None:
+            failed.append(name)
+            details.append(f"- {name}: {patch_message}")
+            continue
+
+        target_file.write_bytes(expected)
         entries[name] = desired
         updated.append(name)
-
         if patch_message:
             details.append(f"- {name}: {patch_message}")
-        if not patch_ok:
-            failed.append(name)
 
     lock_changed = bool(
         updated or adopted or stale_entries or provenance_updated
@@ -354,7 +360,7 @@ def sync(
     return {
         "changed": lock_changed,
         "patch_failed": bool(set(failed) - set(diverged)),
-        "blocked": bool(diverged),
+        "blocked": bool(diverged or failed),
         "updated": updated,
         "adopted": adopted,
         "unchanged": unchanged,
