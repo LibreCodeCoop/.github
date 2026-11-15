@@ -190,7 +190,6 @@ def apply_patch(target_root: Path, target_file: Path) -> tuple[bool, str]:
 
 def render_expected(
     source_file: Path,
-    target_root: Path,
     target_file: Path,
 ) -> tuple[bytes | None, bool, str]:
     patch_file = Path(f"{target_file}.patch")
@@ -287,7 +286,7 @@ def sync(
 
         if locked is None:
             expected, patch_ok, patch_message = render_expected(
-                source_file, target, target_file
+                source_file, target_file
             )
             if not patch_ok:
                 failed.append(name)
@@ -310,7 +309,7 @@ def sync(
 
         if matches_source(locked, source_file):
             expected, patch_ok, patch_message = render_expected(
-                source_file, target, target_file
+                source_file, target_file
             )
             if not patch_ok:
                 failed.append(name)
@@ -338,7 +337,7 @@ def sync(
         # Evaluate the upstream file and its local patch in isolation first.
         # Never replace the last known-good workflow or advance its lock on failure.
         expected, patch_ok, patch_message = render_expected(
-            source_file, target, target_file
+            source_file, target_file
         )
         if not patch_ok or expected is None:
             failed.append(name)

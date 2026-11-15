@@ -3,13 +3,13 @@
 version = 1
 
 [[annotations]]
-path = ["upstream/*.json", "workflow-templates/*.properties.json"]
-precedence = "aggregate"
-SPDX-FileCopyrightText = "2026 LibreCode coop and contributors"
-SPDX-License-Identifier = "AGPL-3.0-or-later"
+    path = ["upstream/*.json", "workflow-templates/*.properties.json"]
+    precedence = "aggregate"
+    SPDX-FileCopyrightText = "2026 LibreCode coop and contributors"
+    SPDX-License-Identifier = "AGPL-3.0-or-later"
 
 [[annotations]]
-path = "patches/nextcloud/*.yml.patch"
-precedence = "aggregate"
-SPDX-FileCopyrightText = "2026 LibreCode coop and contributors"
-SPDX-License-Identifier = "MIT"
+    path = "patches/nextcloud/*.yml.patch"
+    precedence = "aggregate"
+    SPDX-FileCopyrightText = "2026 LibreCode coop and contributors"
+    SPDX-License-Identifier = "MIT"
