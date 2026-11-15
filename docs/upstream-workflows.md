@@ -29,6 +29,28 @@ Rendered downstream templates are declared separately in
 `upstream/templates.json`. Each template points to one vendored source, an
 ordered patch list and a generated workflow under GitHub's native `workflow-templates/` directory. Template metadata (`*.properties.json`) is maintained locally so LibreCode can provide its own names, descriptions, categories and icons without inheriting upstream branding.
 
+## Standard PHP and browser-testing workflows
+
+The organization also publishes the official Nextcloud PHPStan, SQLite/MariaDB/PostgreSQL
+PHPUnit, and Playwright templates. Their source files are vendored by immutable
+Nextcloud commits and checksums. Unlike product-local workflow forks, these
+shared templates are updated by the normal upstream refresh procedure.
+
+`upstream/templates.json` declares a single reusable runner mapping:
+`ubuntu-latest-low` to `ubuntu-latest`, applied only to YAML `runs-on:` values
+**after** upstream patches. It does not edit the vendored Nextcloud files,
+change comments, or change any other workflow strings. This avoids repeated
+consumer runner patches while preserving provenance and future updates.
+
+Consumer application behavior such as database/fixture provisioning, custom
+Playwright assertions, or bespoke PHPStan policy belongs in a small local
+`.github/workflows/<name>.yml.patch`. Applications that use the official
+Composer `phpstan` and `test:unit` contracts need no local PHP patches.
+
+A failed consumer patch is now a hard synchronization failure: the last known-good
+workflow and its lock entry are preserved. The synchronization must not publish
+a broken upstream workflow before a maintainer repairs the patch.
+
 ## Dependency-audit workflow
 
 The `npm-audit-fix.yml` catalog template is derived from a pinned Nextcloud source

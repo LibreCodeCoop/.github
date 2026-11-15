@@ -14,6 +14,9 @@ from dataclasses import dataclass
 from pathlib import Path
 
 
+RUNNER_RE = re.compile(r"^(?P<start>[ \t]*runs-on:[ \t]*)(?P<runner>[A-Za-z0-9_-]+)(?P<end>[ \t]*(?:#.*)?)$", re.MULTILINE)
+RUNNER_NAME_RE = re.compile(r"^[A-Za-z0-9_-]+$")
+
 ACTION_USE_RE = re.compile(
     r"^(?P<prefix>\s*uses:\s*)(?P<action>[^@\s]+)@(?P<ref>[0-9a-f]{40})(?P<suffix>\s*(?:#.*)?)$",
     re.MULTILINE,
@@ -26,6 +29,7 @@ class Template:
     source: Path
     patches: tuple[Path, ...]
     destination: Path
+    runner_aliases: tuple[tuple[str, str], ...] = ()
 
 
 def load_templates(manifest_path: Path) -> list[Template]:
@@ -36,6 +40,15 @@ def load_templates(manifest_path: Path) -> list[Template]:
     raw_templates = payload.get("templates")
     if not isinstance(raw_templates, list):
         raise ValueError("manifest.templates must be an array")
+
+    aliases = payload.get("runner_aliases", {})
+    if not isinstance(aliases, dict) or any(
+        not isinstance(old, str) or not isinstance(new, str)
+        or RUNNER_NAME_RE.fullmatch(old) is None
+        or RUNNER_NAME_RE.fullmatch(new) is None
+        for old, new in aliases.items()
+    ):
+        raise ValueError("manifest.runner_aliases must map safe runner names to safe runner names")
 
     templates: list[Template] = []
     for index, raw in enumerate(raw_templates):
@@ -63,6 +76,7 @@ def load_templates(manifest_path: Path) -> list[Template]:
                 source=source,
                 patches=tuple(Path(item) for item in raw_patches),
                 destination=destination,
+                runner_aliases=tuple(sorted(aliases.items())),
             )
         )
 
@@ -93,7 +107,18 @@ def render(template: Template, root: Path) -> bytes:
                 details = (result.stderr or result.stdout).strip()
                 raise ValueError(f"failed to apply {patch_path}: {details}")
 
-        return working.read_bytes()
+        content = working.read_text(encoding="utf-8")
+        if template.runner_aliases:
+            replacements = dict(template.runner_aliases)
+            content = RUNNER_RE.sub(
+                lambda match: (
+                    match.group("start")
+                    + replacements.get(match.group("runner"), match.group("runner"))
+                    + match.group("end")
+                ),
+                content,
+            )
+        return content.encode("utf-8")
 
 
 def preserve_action_pins(rendered: bytes, current: bytes | None) -> bytes:

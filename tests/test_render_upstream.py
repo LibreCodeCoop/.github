@@ -60,6 +60,38 @@ class RenderUpstreamTest(unittest.TestCase):
         )
         return root, manifest
 
+    def test_nextcloud_runner_alias_is_generic_and_does_not_touch_other_text(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            root, manifest = self.fixture(directory)
+            source = root / "upstream/vendor/example.yml"
+            source.write_text(
+                "name: Test\n# ubuntu-latest-low in a comment\n"
+                "jobs:\n  test:\n    runs-on: ubuntu-latest-low\n"
+                "  fallback:\n    runs-on: ubuntu-latest\n", encoding="utf-8",
+            )
+            payload = json.loads(manifest.read_text())
+            payload["templates"][0]["patches"] = []
+            payload["runner_aliases"] = {"ubuntu-latest-low": "ubuntu-latest"}
+            manifest.write_text(json.dumps(payload))
+            templates = load_templates(manifest)
+            self.assertTrue(sync(templates, root)["ok"])
+            generated = (root / "workflow-templates/example.yml").read_text()
+            self.assertEqual(generated.count("runs-on: ubuntu-latest"), 2)
+            self.assertIn("# ubuntu-latest-low in a comment", generated)
+            check(templates, root)
+            self.assertEqual(sync(templates, root)["unchanged"], 1)
+
+    def test_runner_alias_rejects_invalid_names(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            _, manifest = self.fixture(directory)
+            payload = json.loads(manifest.read_text())
+            for aliases in ([], {"bad run": "ubuntu-latest"}, {"ubuntu-latest-low": "x\ny"}):
+                with self.subTest(aliases=aliases):
+                    payload["runner_aliases"] = aliases
+                    manifest.write_text(json.dumps(payload))
+                    with self.assertRaisesRegex(ValueError, "runner_aliases"):
+                        load_templates(manifest)
+
     def test_sync_applies_patch(self) -> None:
         with tempfile.TemporaryDirectory() as directory:
             root, manifest = self.fixture(directory)

@@ -1,0 +1,13 @@
+{
+  "name": "PHPUnit MariaDB",
+  "description": "Run standard Nextcloud PHPUnit unit and integration tests with MariaDB.",
+  "iconName": "octicon codescan-checkmark",
+  "categories": [
+    "PHP",
+    "test"
+  ],
+  "filePatterns": [
+    "^composer.json$",
+    "^phpunit.xml.*$"
+  ]
+}

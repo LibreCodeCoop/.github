@@ -1,0 +1,13 @@
+{
+  "name": "PHPUnit PostgreSQL",
+  "description": "Run standard Nextcloud PHPUnit unit and integration tests with PostgreSQL.",
+  "iconName": "octicon codescan-checkmark",
+  "categories": [
+    "PHP",
+    "test"
+  ],
+  "filePatterns": [
+    "^composer.json$",
+    "^phpunit.xml.*$"
+  ]
+}

@@ -134,6 +134,51 @@
       "url": "https://raw.githubusercontent.com/nextcloud/.github/d17a1728cd176b54fe0be73407ed0062a7f4ec5a/workflow-templates/npm-audit-fix.yml",
       "sha256": "ae8743960f808afaf479d7c3aa0f7ee04b4ad13a52c5cafe9f7eb32b19807edc",
       "destination": "upstream/vendor/nextcloud/npm-audit-fix.yml"
+    },
+    {
+      "name": "nextcloud-phpstan",
+      "repository": "nextcloud/.github",
+      "ref": "master",
+      "path": "workflow-templates/phpstan.yml",
+      "url": "https://raw.githubusercontent.com/nextcloud/.github/c2798fc61844a6420779add9f5e1b51f8aabfd87/workflow-templates/phpstan.yml",
+      "sha256": "3737c57183fb37a41d0fa4cf2efa55245e7fc8348dbad43faf9ee6197440edae",
+      "destination": "upstream/vendor/nextcloud/phpstan.yml"
+    },
+    {
+      "name": "nextcloud-phpunit-sqlite",
+      "repository": "nextcloud/.github",
+      "ref": "master",
+      "path": "workflow-templates/phpunit-sqlite.yml",
+      "url": "https://raw.githubusercontent.com/nextcloud/.github/c2798fc61844a6420779add9f5e1b51f8aabfd87/workflow-templates/phpunit-sqlite.yml",
+      "sha256": "06642c0d4ee358baa079716426a2ae24d387d3cb04b00c88f50ea46f8da1a1e8",
+      "destination": "upstream/vendor/nextcloud/phpunit-sqlite.yml"
+    },
+    {
+      "name": "nextcloud-phpunit-mariadb",
+      "repository": "nextcloud/.github",
+      "ref": "master",
+      "path": "workflow-templates/phpunit-mariadb.yml",
+      "url": "https://raw.githubusercontent.com/nextcloud/.github/c2798fc61844a6420779add9f5e1b51f8aabfd87/workflow-templates/phpunit-mariadb.yml",
+      "sha256": "706800a7d01034c9c4a657585a1b8c955259eb86869dadabafba046081fa1446",
+      "destination": "upstream/vendor/nextcloud/phpunit-mariadb.yml"
+    },
+    {
+      "name": "nextcloud-phpunit-pgsql",
+      "repository": "nextcloud/.github",
+      "ref": "master",
+      "path": "workflow-templates/phpunit-pgsql.yml",
+      "url": "https://raw.githubusercontent.com/nextcloud/.github/c2798fc61844a6420779add9f5e1b51f8aabfd87/workflow-templates/phpunit-pgsql.yml",
+      "sha256": "e0a15c5d99b0ad092a5560660f712712b1cdcf0ede6e22fca15c8b591402eec3",
+      "destination": "upstream/vendor/nextcloud/phpunit-pgsql.yml"
+    },
+    {
+      "name": "nextcloud-playwright",
+      "repository": "nextcloud/.github",
+      "ref": "master",
+      "path": "workflow-templates/playwright.yml",
+      "url": "https://raw.githubusercontent.com/nextcloud/.github/c2798fc61844a6420779add9f5e1b51f8aabfd87/workflow-templates/playwright.yml",
+      "sha256": "26106f8ae4bef2a191c445fb3a246ae6e1ab3f43348b8940feaf356768091a38",
+      "destination": "upstream/vendor/nextcloud/playwright.yml"
     }
   ]
 }
