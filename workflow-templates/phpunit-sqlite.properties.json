@@ -1,0 +1,13 @@
+{
+  "name": "PHPUnit SQLite",
+  "description": "Run standard Nextcloud PHPUnit unit and integration tests with SQLite.",
+  "iconName": "octicon codescan-checkmark",
+  "categories": [
+    "PHP",
+    "test"
+  ],
+  "filePatterns": [
+    "^composer.json$",
+    "^phpunit.xml.*$"
+  ]
+}

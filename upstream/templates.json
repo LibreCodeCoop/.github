@@ -116,6 +116,39 @@
         "patches/nextcloud/npm-audit-fix.yml.patch"
       ],
       "destination": "workflow-templates/npm-audit-fix.yml"
+    },
+    {
+      "name": "nextcloud-phpstan",
+      "source": "upstream/vendor/nextcloud/phpstan.yml",
+      "patches": [],
+      "destination": "workflow-templates/phpstan.yml"
+    },
+    {
+      "name": "nextcloud-phpunit-sqlite",
+      "source": "upstream/vendor/nextcloud/phpunit-sqlite.yml",
+      "patches": [],
+      "destination": "workflow-templates/phpunit-sqlite.yml"
+    },
+    {
+      "name": "nextcloud-phpunit-mariadb",
+      "source": "upstream/vendor/nextcloud/phpunit-mariadb.yml",
+      "patches": [],
+      "destination": "workflow-templates/phpunit-mariadb.yml"
+    },
+    {
+      "name": "nextcloud-phpunit-pgsql",
+      "source": "upstream/vendor/nextcloud/phpunit-pgsql.yml",
+      "patches": [],
+      "destination": "workflow-templates/phpunit-pgsql.yml"
+    },
+    {
+      "name": "nextcloud-playwright",
+      "source": "upstream/vendor/nextcloud/playwright.yml",
+      "patches": [],
+      "destination": "workflow-templates/playwright.yml"
     }
-  ]
+  ],
+  "runner_aliases": {
+    "ubuntu-latest-low": "ubuntu-latest"
+  }
 }

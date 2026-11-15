@@ -1,0 +1,13 @@
+{
+  "name": "Playwright end-to-end tests",
+  "description": "Run official Nextcloud Playwright browser tests with report aggregation.",
+  "iconName": "octicon codescan-checkmark",
+  "categories": [
+    "JavaScript",
+    "test"
+  ],
+  "filePatterns": [
+    "^package.json$",
+    "^playwright.config.*$"
+  ]
+}

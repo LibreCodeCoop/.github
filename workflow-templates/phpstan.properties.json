@@ -1,0 +1,13 @@
+{
+  "name": "PHPStan static analysis",
+  "description": "Run official Nextcloud PHPStan static analysis against supported PHP and Nextcloud versions.",
+  "iconName": "octicon codescan-checkmark",
+  "categories": [
+    "PHP",
+    "test"
+  ],
+  "filePatterns": [
+    "^composer.json$",
+    "^phpstan.neon$"
+  ]
+}
