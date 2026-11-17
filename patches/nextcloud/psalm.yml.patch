@@ -8,3 +8,7 @@
  # https://docs.github.com/en/actions/learn-github-actions/sharing-workflows-with-your-organization
  #
  # SPDX-FileCopyrightText: 2022-2024 Nextcloud GmbH and Nextcloud contributors
+@@ -60,2 +60,2 @@
+       - name: Run coding standards check
+-        run: composer run psalm -- --threads=1 --monochrome --no-progress --output-format=github
++        run: composer run psalm -- --monochrome --no-progress --output-format=github
