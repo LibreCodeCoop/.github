@@ -11,7 +11,7 @@ permissions:
 
 jobs:
   init:
-    runs-on: ubuntu-latest-low
+    runs-on: ubuntu-latest
 
     # A consumer patch or repository variable configures the command.
     if: github.event.issue.pull_request != '' && vars.SUBMODULE_PR_COMMAND != '' && github.event.comment.body == vars.SUBMODULE_PR_COMMAND
@@ -71,7 +71,7 @@ jobs:
           reactions: '-1'
 
   process:
-    runs-on: ubuntu-latest-low
+    runs-on: ubuntu-latest
     needs: init
 
     env:
