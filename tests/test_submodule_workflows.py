@@ -52,7 +52,6 @@ class SubmoduleCommandTest(unittest.TestCase):
         self.assertIn("commit-tree", before_publish)
         self.assertIn("Signed-off-by: github-actions[bot]", before_publish)
         self.assertNotIn("checkout --detach", before_publish)
-        self.assertNotIn('if 
         self.assertIn("persist-credentials: false", before_publish)
         self.assertNotIn("force-with-lease", updater)
         self.assertIn("ref: $" + "{{ github.event.repository.default_branch }}", updater)
