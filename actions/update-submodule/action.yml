@@ -1,0 +1,30 @@
+# SPDX-FileCopyrightText: 2026 LibreCode coop and contributors
+# SPDX-License-Identifier: AGPL-3.0-or-later
+
+name: Update a linked submodule from a merged pull request
+description: Updates a gitlink through the GitHub API without checking out PR code.
+
+inputs:
+  token:
+    description: Token limited to the parent and source repository operations
+    required: true
+  source-repository:
+    description: Repository containing the already merged source pull request
+    required: true
+  submodule-path:
+    description: Gitlink path within the parent repository
+    required: true
+
+runs:
+  using: composite
+  steps:
+    - name: Verify and update submodule gitlink
+      uses: actions/github-script@3a2844b7e9c422d3c10d287c895573f7108da1b3 # v9.0.0
+      env:
+        SUBMODULE_PATH: ${{ inputs.submodule-path }}
+        SOURCE_REPOSITORY: ${{ inputs.source-repository }}
+      with:
+        github-token: ${{ inputs.token }}
+        script: |
+          const run = require('${{ github.action_path }}/update.js')
+          await run({ github, context, core, env: process.env })
