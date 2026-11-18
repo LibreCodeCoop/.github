@@ -57,7 +57,7 @@ class WorkflowSyncAuthTest(unittest.TestCase):
                 step = self.content.split("      - name: " + name + "\n", 1)[1]
                 step = step.split("      - name: ", 1)[0]
                 self.assertIn('case "' + '$' + '{AUTH_MODE}" in', step)
-                self.assertNotRegex(step, r"^\s*AUTH_MODE:", re.MULTILINE)
+                self.assertIsNone(re.search(r"^\s*AUTH_MODE:", step, re.MULTILINE))
 
     def test_unset_token_and_app_modes(self) -> None:
         resolved_default = re.search(

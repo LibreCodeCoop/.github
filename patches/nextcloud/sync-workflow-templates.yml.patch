@@ -35,8 +35,11 @@
  
      name: Update workflows in ${{ matrix.branches }}
  
-@@ -38,16 +38,123 @@
+@@ -38,16 +38,124 @@
  
++    env:
++      AUTH_MODE: ${{ vars.WORKFLOW_SYNC_AUTH_MODE || 'librecode-app' }}
++
      steps:
        - name: Check actor permission
 +        if: ${{ github.event_name == 'workflow_dispatch' }}
@@ -54,7 +57,6 @@
 +      - name: Validate workflow sync authentication
 +        shell: bash
 +        env:
-+          AUTH_MODE: ${{ vars.WORKFLOW_SYNC_AUTH_MODE || 'librecode-app' }}
 +          LIBRECODE_APP_CLIENT_ID: ${{ vars.LIBRECODE_WORKFLOW_APP_CLIENT_ID }}
 +          LIBRECODE_APP_PRIVATE_KEY: ${{ secrets.LIBRECODE_WORKFLOW_APP_PRIVATE_KEY }}
 +          CONSUMER_APP_CLIENT_ID: ${{ vars.WORKFLOW_SYNC_APP_CLIENT_ID }}
@@ -91,7 +93,7 @@
 +          esac
 +
 +      - name: Create LibreCode GitHub App token
-+        if: ${{ vars.WORKFLOW_SYNC_AUTH_MODE == '' || vars.WORKFLOW_SYNC_AUTH_MODE == 'librecode-app' }}
++        if: ${{ env.AUTH_MODE == 'librecode-app' }}
 +        id: librecode-app-token
 +        uses: actions/create-github-app-token@bcd2ba49218906704ab6c1aa796996da409d3eb1 # v3.2.0
 +        with:
@@ -104,7 +106,7 @@
 +          permission-workflows: write
 +
 +      - name: Create consumer GitHub App token
-+        if: ${{ vars.WORKFLOW_SYNC_AUTH_MODE == 'github-app' }}
++        if: ${{ env.AUTH_MODE == 'github-app' }}
 +        id: consumer-app-token
 +        uses: actions/create-github-app-token@bcd2ba49218906704ab6c1aa796996da409d3eb1 # v3.2.0
 -        uses: skjnldsv/check-actor-permission@69e92a3c4711150929bca9fcf34448c5bf5526e7 # v3.0
@@ -121,7 +123,6 @@
 +        id: auth-token
 +        shell: bash
 +        env:
-+          AUTH_MODE: ${{ vars.WORKFLOW_SYNC_AUTH_MODE || 'librecode-app' }}
 +          LIBRECODE_APP_TOKEN: ${{ steps.librecode-app-token.outputs.token }}
 +          CONSUMER_APP_TOKEN: ${{ steps.consumer-app-token.outputs.token }}
 +          CONSUMER_TOKEN: ${{ secrets.WORKFLOW_SYNC_TOKEN }}
@@ -162,7 +163,7 @@
  
        - name: Checkout app
          uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-@@ -56,112 +163,31 @@
+@@ -56,112 +164,31 @@
            path: target
            ref: ${{ matrix.branches }}
  
