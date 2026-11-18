@@ -36,6 +36,9 @@ jobs:
       contents: write
       pull-requests: write
 
+    env:
+      AUTH_MODE: ${{ vars.WORKFLOW_SYNC_AUTH_MODE || 'librecode-app' }}
+
     steps:
       - name: Check actor permission
         if: ${{ github.event_name == 'workflow_dispatch' }}
@@ -53,7 +56,6 @@ jobs:
       - name: Validate workflow sync authentication
         shell: bash
         env:
-          AUTH_MODE: ${{ vars.WORKFLOW_SYNC_AUTH_MODE || 'librecode-app' }}
           LIBRECODE_APP_CLIENT_ID: ${{ vars.LIBRECODE_WORKFLOW_APP_CLIENT_ID }}
           LIBRECODE_APP_PRIVATE_KEY: ${{ secrets.LIBRECODE_WORKFLOW_APP_PRIVATE_KEY }}
           CONSUMER_APP_CLIENT_ID: ${{ vars.WORKFLOW_SYNC_APP_CLIENT_ID }}
@@ -90,7 +92,7 @@ jobs:
           esac
 
       - name: Create LibreCode GitHub App token
-        if: ${{ vars.WORKFLOW_SYNC_AUTH_MODE == '' || vars.WORKFLOW_SYNC_AUTH_MODE == 'librecode-app' }}
+        if: ${{ env.AUTH_MODE == 'librecode-app' }}
         id: librecode-app-token
         uses: actions/create-github-app-token@64ab729a6294000f5aa4a4bc0b73d1f32bc45510 # v3.3.0
         with:
@@ -103,7 +105,7 @@ jobs:
           permission-workflows: write
 
       - name: Create consumer GitHub App token
-        if: ${{ vars.WORKFLOW_SYNC_AUTH_MODE == 'github-app' }}
+        if: ${{ env.AUTH_MODE == 'github-app' }}
         id: consumer-app-token
         uses: actions/create-github-app-token@64ab729a6294000f5aa4a4bc0b73d1f32bc45510 # v3.3.0
         with:
@@ -119,7 +121,6 @@ jobs:
         id: auth-token
         shell: bash
         env:
-          AUTH_MODE: ${{ vars.WORKFLOW_SYNC_AUTH_MODE || 'librecode-app' }}
           LIBRECODE_APP_TOKEN: ${{ steps.librecode-app-token.outputs.token }}
           CONSUMER_APP_TOKEN: ${{ steps.consumer-app-token.outputs.token }}
           CONSUMER_TOKEN: ${{ secrets.WORKFLOW_SYNC_TOKEN }}

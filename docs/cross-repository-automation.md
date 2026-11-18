@@ -26,7 +26,10 @@ The updater manages workflows already installed in the consumer repository. It r
 
 ## Authentication
 
-The installed updater selects authentication with the repository variable `WORKFLOW_SYNC_AUTH_MODE`:
+The installed updater selects authentication with the repository variable `WORKFLOW_SYNC_AUTH_MODE`.
+The shared workflow resolves the effective mode once per job (default: `librecode-app`)
+and uses it consistently for validation, App creation and token selection.
+Consumers can override the default in a workflow patch without changing the App steps:
 
 - `librecode-app` — LibreCode-managed repositories; uses `LIBRECODE_WORKFLOW_APP_CLIENT_ID` and `LIBRECODE_WORKFLOW_APP_PRIVATE_KEY`.
 - `github-app` — independent consumers; uses `WORKFLOW_SYNC_APP_CLIENT_ID` and `WORKFLOW_SYNC_APP_PRIVATE_KEY`.
