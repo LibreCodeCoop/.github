@@ -1,12 +1,13 @@
 # SPDX-FileCopyrightText: 2026 LibreCode coop and contributors
 # SPDX-License-Identifier: AGPL-3.0-or-later
 
-"""Regression tests for a single effective workflow authentication mode."""
+"""Regression tests for provider-neutral workflow authentication."""
 
+import os
 import re
+import subprocess
 import unittest
 from pathlib import Path
-
 
 WORKFLOW = (
     Path(__file__).resolve().parents[1]
@@ -20,74 +21,96 @@ class WorkflowSyncAuthTest(unittest.TestCase):
     def setUpClass(cls) -> None:
         cls.content = WORKFLOW.read_text(encoding="utf-8")
 
-    def test_job_scope_defines_the_mode_once(self) -> None:
-        job = self.content.split("  dispatch:\n", 1)[1]
-        resolved = re.findall(
-            r"^      AUTH_MODE: .* [|][|] '([^']+)' }}$",
-            job, re.MULTILINE,
-        )
-        self.assertEqual(resolved, ["librecode-app"])
+    def step(self, name: str) -> str:
+        text = self.content.split("      - name: " + name + "\n", 1)[1]
+        return text.split("      - name: ", 1)[0]
+
+    def validation_script(self) -> str:
+        step = self.step("Validate workflow sync authentication")
+        script = step.split("        run: |\n", 1)[1]
+        return "\n".join(
+            line[10:] if line.startswith("          ") else line
+            for line in script.splitlines()
+        ) + "\n"
+
+    def test_public_default_and_one_app_step(self) -> None:
         self.assertIn(
-            "    env:\n      AUTH_MODE: ", job
+            "AUTH_MODE: " + "$" + "{{ vars.WORKFLOW_SYNC_AUTH_MODE || 'github-app' }}",
+            self.content,
         )
-        self.assertEqual(len(re.findall(
-            r"^\s*AUTH_MODE:", job, re.MULTILINE
-        )), 1)
+        self.assertEqual(
+            self.content.count("      - name: Create GitHub App token\n"), 1
+        )
+        self.assertNotIn("      - name: Create LibreCode GitHub App token\n",
+                         self.content)
+        self.assertNotIn("      - name: Create consumer GitHub App token\n",
+                         self.content)
+        self.assertEqual(
+            len(re.findall(r"^\s*AUTH_MODE:", self.content, re.MULTILINE)), 1
+        )
 
-    def test_app_gates_use_the_resolved_job_mode(self) -> None:
-        for name, expected in (
-            ("Create LibreCode GitHub App token", "librecode-app"),
-            ("Create consumer GitHub App token", "github-app"),
-        ):
-            with self.subTest(step=name):
-                step = self.content.split("      - name: " + name + "\n", 1)[1]
-                step = step.split("      - name: ", 1)[0]
-                gate = re.findall(
-                    r"^\s*if: .*env\.AUTH_MODE == '([^']+)' }}$",
-                    step, re.MULTILINE,
+    def test_app_gate_and_credential_precedence(self) -> None:
+        step = self.step("Create GitHub App token")
+        self.assertIn(
+            "env.AUTH_MODE == 'github-app' || env.AUTH_MODE == 'librecode-app'",
+            step,
+        )
+        self.assertIn(
+            "vars.WORKFLOW_SYNC_APP_CLIENT_ID || "
+            "vars.LIBRECODE_WORKFLOW_APP_CLIENT_ID", step,
+        )
+        self.assertIn(
+            "secrets.WORKFLOW_SYNC_APP_PRIVATE_KEY || "
+            "secrets.LIBRECODE_WORKFLOW_APP_PRIVATE_KEY", step,
+        )
+        self.assertEqual(self.content.count("id: workflow-app-token"), 1)
+        self.assertIn("steps.workflow-app-token.outputs.token",
+                      self.step("Resolve workflow sync token"))
+
+    def test_validate_modes_and_credential_pairs(self) -> None:
+        script = self.validation_script()
+        fixtures = (
+            # name, mode, generic ID/key, legacy ID/key, token, success
+            ("generic default", "github-app", "id", "key", "", "", "", True),
+            ("legacy fallback", "github-app", "", "", "old-id", "old-key", "", True),
+            ("legacy mode", "librecode-app", "", "", "old-id", "old-key", "", True),
+            ("generic preferred", "github-app", "id", "key", "old-id",
+             "old-key", "", True),
+            ("partial generic ID", "github-app", "id", "", "old-id",
+             "old-key", "", False),
+            ("partial generic key", "github-app", "", "key", "old-id",
+             "old-key", "", False),
+            ("missing app credentials", "github-app", "", "", "", "", "", False),
+            ("partial legacy ID", "github-app", "", "", "old-id", "", "", False),
+            ("partial legacy key", "github-app", "", "", "", "old-key", "", False),
+            ("token", "token", "", "", "", "", "token-value", True),
+            ("missing token", "token", "", "", "", "", "", False),
+            ("github-token", "github-token", "", "", "", "", "", True),
+            ("unsupported", "unrecognized", "", "", "", "", "", False),
+        )
+        for name, mode, gid, gkey, lid, lkey, token, expected in fixtures:
+            with self.subTest(case=name):
+                env = dict(os.environ, AUTH_MODE=mode,
+                           APP_CLIENT_ID=gid, APP_PRIVATE_KEY=gkey,
+                           LEGACY_APP_CLIENT_ID=lid,
+                           LEGACY_APP_PRIVATE_KEY=lkey,
+                           CONSUMER_TOKEN=token)
+                result = subprocess.run(
+                    ["bash", "-e", "-c", script], env=env, text=True,
+                    capture_output=True, check=False,
                 )
-                self.assertEqual(gate, [expected])
+                self.assertEqual(
+                    result.returncode == 0, expected,
+                    name + ": " + result.stderr + result.stdout,
+                )
 
-    def test_validation_and_token_selection_consume_inherited_mode(self) -> None:
-        for name in (
-            "Validate workflow sync authentication",
-            "Resolve workflow sync token",
-        ):
-            with self.subTest(step=name):
-                step = self.content.split("      - name: " + name + "\n", 1)[1]
-                step = step.split("      - name: ", 1)[0]
-                self.assertIn('case "' + '$' + '{AUTH_MODE}" in', step)
-                self.assertIsNone(re.search(r"^\s*AUTH_MODE:", step, re.MULTILINE))
-
-    def test_unset_token_and_app_modes(self) -> None:
-        resolved_default = re.search(
-            r"^      AUTH_MODE: .* [|][|] '([^']+)' }}$",
-            self.content, re.MULTILINE,
-        ).group(1)
-        gates = {"librecode-app": [], "github-app": []}
-        for name, role in (
-            ("Create LibreCode GitHub App token", "librecode-app"),
-            ("Create consumer GitHub App token", "github-app"),
-        ):
-            step = self.content.split("      - name: " + name + "\n", 1)[1]
-            gates[role] = re.search(
-                r"^\s*if: .*env\.AUTH_MODE == '([^']+)' }}$",
-                step, re.MULTILINE,
-            ).group(1)
-
-        expected = {
-            "": (True, False),
-            "token": (False, False),
-            "librecode-app": (True, False),
-            "github-app": (False, True),
-            "github-token": (False, False),
-        }
-        for configured, should_run in expected.items():
-            with self.subTest(configured=configured or "(unset)"):
-                effective = configured or resolved_default
-                actual = (effective == gates["librecode-app"],
-                          effective == gates["github-app"])
-                self.assertEqual(actual, should_run)
+    def test_token_selection_is_shared(self) -> None:
+        step = self.step("Resolve workflow sync token")
+        self.assertIn("github-app|librecode-app)", step)
+        self.assertIn('token="' + '$' + '{WORKFLOW_APP_TOKEN}"', step)
+        self.assertIn('token="' + '$' + '{CONSUMER_TOKEN}"', step)
+        self.assertIn('token="' + '$' + '{GITHUB_TOKEN}"', step)
+        self.assertNotIn("LIBRECODE_APP_TOKEN", step)
 
 
 if __name__ == "__main__":

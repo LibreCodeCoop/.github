@@ -37,7 +37,7 @@ jobs:
       pull-requests: write
 
     env:
-      AUTH_MODE: ${{ vars.WORKFLOW_SYNC_AUTH_MODE || 'librecode-app' }}
+      AUTH_MODE: ${{ vars.WORKFLOW_SYNC_AUTH_MODE || 'github-app' }}
 
     steps:
       - name: Check actor permission
@@ -56,29 +56,30 @@ jobs:
       - name: Validate workflow sync authentication
         shell: bash
         env:
-          LIBRECODE_APP_CLIENT_ID: ${{ vars.LIBRECODE_WORKFLOW_APP_CLIENT_ID }}
-          LIBRECODE_APP_PRIVATE_KEY: ${{ secrets.LIBRECODE_WORKFLOW_APP_PRIVATE_KEY }}
-          CONSUMER_APP_CLIENT_ID: ${{ vars.WORKFLOW_SYNC_APP_CLIENT_ID }}
-          CONSUMER_APP_PRIVATE_KEY: ${{ secrets.WORKFLOW_SYNC_APP_PRIVATE_KEY }}
-          CONSUMER_TOKEN: ${{ secrets.WORKFLOW_SYNC_TOKEN }}
+          APP_CLIENT_ID: ${{ vars.WORKFLOW_SYNC_APP_CLIENT_ID }
+          APP_PRIVATE_KEY: ${{ secrets.WORKFLOW_SYNC_APP_PRIVATE_KEY }
+          LEGACY_APP_CLIENT_ID: ${{ vars.LIBRECODE_WORKFLOW_APP_CLIENT_ID }
+          LEGACY_APP_PRIVATE_KEY: ${{ secrets.LIBRECODE_WORKFLOW_APP_PRIVATE_KEY }
+          CONSUMER_TOKEN: ${{ secrets.WORKFLOW_SYNC_TOKEN }
         run: |
           set -euo pipefail
 
-          case "${AUTH_MODE}" in
-            librecode-app)
-              [[ -n "${LIBRECODE_APP_CLIENT_ID}" && -n "${LIBRECODE_APP_PRIVATE_KEY}" ]] || {
-                echo "::error::librecode-app requires LIBRECODE_WORKFLOW_APP_CLIENT_ID and LIBRECODE_WORKFLOW_APP_PRIVATE_KEY"
-                exit 1
-              }
-              ;;
-            github-app)
-              [[ -n "${CONSUMER_APP_CLIENT_ID}" && -n "${CONSUMER_APP_PRIVATE_KEY}" ]] || {
+          case "\${AUTH_MODE}" in
+            github-app|librecode-app)
+              if [[ -n "\${APP_CLIENT_ID}" || -n "\${APP_PRIVATE_KEY}" ]]; then
+                [[ -n "\${APP_CLIENT_ID}" && -n "\${APP_PRIVATE_KEY}" ]] || {
+                  echo "::error::WORKFLOW_SYNC_APP_CLIENT_ID and WORKFLOW_SYNC_APP_PRIVATE_KEY must be configured together"
+                  exit 1
+                }
+              elif [[ -n "\${LEGACY_APP_CLIENT_ID}" && -n "\${LEGACY_APP_PRIVATE_KEY}" ]]; then
+                echo "::notice::Legacy App credentials are supported for compatibility; migrate to WORKFLOW_SYNC_APP_*"
+              else
                 echo "::error::github-app requires WORKFLOW_SYNC_APP_CLIENT_ID and WORKFLOW_SYNC_APP_PRIVATE_KEY"
                 exit 1
-              }
+              fi
               ;;
             token)
-              [[ -n "${CONSUMER_TOKEN}" ]] || {
+              [[ -n "\${CONSUMER_TOKEN}" ]] || {
                 echo "::error::token mode requires WORKFLOW_SYNC_TOKEN"
                 exit 1
               }
@@ -86,33 +87,20 @@ jobs:
             github-token)
               ;;
             *)
-              echo "::error::Unsupported WORKFLOW_SYNC_AUTH_MODE: ${AUTH_MODE}"
+              echo "::error::Unsupported WORKFLOW_SYNC_AUTH_MODE: \${AUTH_MODE}"
               exit 1
               ;;
           esac
 
-      - name: Create LibreCode GitHub App token
-        if: ${{ env.AUTH_MODE == 'librecode-app' }}
-        id: librecode-app-token
+      - name: Create GitHub App token
+        if: ${{ env.AUTH_MODE == 'github-app' || env.AUTH_MODE == 'librecode-app' }
+        id: workflow-app-token
         uses: actions/create-github-app-token@64ab729a6294000f5aa4a4bc0b73d1f32bc45510 # v3.3.0
         with:
-          client-id: ${{ vars.LIBRECODE_WORKFLOW_APP_CLIENT_ID }}
-          private-key: ${{ secrets.LIBRECODE_WORKFLOW_APP_PRIVATE_KEY }}
-          owner: ${{ github.repository_owner }}
-          repositories: ${{ github.event.repository.name }}
-          permission-contents: write
-          permission-pull-requests: write
-          permission-workflows: write
-
-      - name: Create consumer GitHub App token
-        if: ${{ env.AUTH_MODE == 'github-app' }}
-        id: consumer-app-token
-        uses: actions/create-github-app-token@64ab729a6294000f5aa4a4bc0b73d1f32bc45510 # v3.3.0
-        with:
-          client-id: ${{ vars.WORKFLOW_SYNC_APP_CLIENT_ID }}
-          private-key: ${{ secrets.WORKFLOW_SYNC_APP_PRIVATE_KEY }}
-          owner: ${{ github.repository_owner }}
-          repositories: ${{ github.event.repository.name }}
+          client-id: ${{ vars.WORKFLOW_SYNC_APP_CLIENT_ID || vars.LIBRECODE_WORKFLOW_APP_CLIENT_ID }
+          private-key: ${{ secrets.WORKFLOW_SYNC_APP_PRIVATE_KEY || secrets.LIBRECODE_WORKFLOW_APP_PRIVATE_KEY }
+          owner: ${{ github.repository_owner }
+          repositories: ${{ github.event.repository.name }
           permission-contents: write
           permission-pull-requests: write
           permission-workflows: write
@@ -121,28 +109,26 @@ jobs:
         id: auth-token
         shell: bash
         env:
-          LIBRECODE_APP_TOKEN: ${{ steps.librecode-app-token.outputs.token }}
-          CONSUMER_APP_TOKEN: ${{ steps.consumer-app-token.outputs.token }}
-          CONSUMER_TOKEN: ${{ secrets.WORKFLOW_SYNC_TOKEN }}
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          WORKFLOW_APP_TOKEN: ${{ steps.workflow-app-token.outputs.token }
+          CONSUMER_TOKEN: ${{ secrets.WORKFLOW_SYNC_TOKEN }
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }
         run: |
           set -euo pipefail
 
-          case "${AUTH_MODE}" in
-            librecode-app) token="${LIBRECODE_APP_TOKEN}" ;;
-            github-app) token="${CONSUMER_APP_TOKEN}" ;;
-            token) token="${CONSUMER_TOKEN}" ;;
-            github-token) token="${GITHUB_TOKEN}" ;;
+          case "\${AUTH_MODE}" in
+            github-app|librecode-app) token="\${WORKFLOW_APP_TOKEN}" ;;
+            token) token="\${CONSUMER_TOKEN}" ;;
+            github-token) token="\${GITHUB_TOKEN}" ;;
             *) exit 1 ;;
           esac
 
-          [[ -n "${token}" ]] || {
+          [[ -n "\${token}" ]] || {
             echo "::error::Selected workflow sync authentication produced an empty token"
             exit 1
           }
 
-          echo "::add-mask::${token}"
-          echo "token=${token}" >> "${GITHUB_OUTPUT}"
+          echo "::add-mask::\${token}"
+          echo "token=\${token}" >> "\${GITHUB_OUTPUT}"
 
       - name: Checkout workflow repository
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
