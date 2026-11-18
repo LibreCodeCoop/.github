@@ -1,0 +1,8 @@
+{
+  "name": "Open parent PR for a Composer submodule",
+  "description": "Create a reviewable parent-repository pull request for a dependency submodule; configure command, repository and path per consumer.",
+  "iconName": "octicon git-pull-request",
+  "categories": [
+    "Continuous integration"
+  ]
+}

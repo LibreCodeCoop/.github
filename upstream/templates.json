@@ -146,6 +146,14 @@
       "source": "upstream/vendor/nextcloud/playwright.yml",
       "patches": [],
       "destination": "workflow-templates/playwright.yml"
+    },
+    {
+      "name": "nextcloud-command-submodule-pr",
+      "source": "upstream/vendor/nextcloud/command-submodule-pr.yml",
+      "patches": [
+        "patches/nextcloud/command-submodule-pr.yml.patch"
+      ],
+      "destination": "workflow-templates/command-submodule-pr.yml"
     }
   ],
   "runner_aliases": {
