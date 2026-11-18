@@ -104,6 +104,11 @@ class WorkflowSyncAuthTest(unittest.TestCase):
                     name + ": " + result.stderr + result.stdout,
                 )
 
+    def test_bash_and_github_expressions_are_well_formed(self) -> None:
+        self.assertNotIn(chr(92) + "$" + "{", self.content)
+        for line in self.content.splitlines():
+            self.assertEqual(line.count("$" + "{{"), line.count("}}"), line)
+
     def test_token_selection_is_shared(self) -> None:
         step = self.step("Resolve workflow sync token")
         self.assertIn("github-app|librecode-app)", step)
