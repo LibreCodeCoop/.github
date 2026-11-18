@@ -1,0 +1,167 @@
+# SPDX-FileCopyrightText: 2026 Nextcloud GmbH and Nextcloud contributors
+# SPDX-License-Identifier: MIT
+name: Open submodule pull request
+
+on:
+  issue_comment: # zizmor: ignore[dangerous-triggers]
+    types: [created]
+
+permissions:
+  contents: read
+
+jobs:
+  init:
+    runs-on: ubuntu-latest
+
+    # A consumer patch or repository variable configures the command.
+    if: github.event.issue.pull_request != '' && vars.SUBMODULE_PR_COMMAND != '' && github.event.comment.body == vars.SUBMODULE_PR_COMMAND
+
+    outputs:
+      head_ref: ${{ steps.comment-branch.outputs.head_ref }}
+      head_sha: ${{ steps.comment-branch.outputs.head_sha }}
+      base_ref: ${{ steps.comment-branch.outputs.base_ref }}
+
+    steps:
+      - name: Get repository from pull request comment
+        uses: actions/github-script@3a2844b7e9c422d3c10d287c895573f7108da1b3 # v9.0.0
+        id: get-repository
+        with:
+          github-token: ${{secrets.GITHUB_TOKEN}}
+          script: |
+            const pull = await github.rest.pulls.get({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              pull_number: context.issue.number
+            });
+
+            const repositoryName = pull.data.head?.repo?.full_name
+            console.log(repositoryName)
+            return repositoryName
+
+      - name: Disabled on forks
+        if: ${{ fromJSON(steps.get-repository.outputs.result) != github.repository }}
+        run: |
+          echo 'Can not execute /server-pr on forks'
+          exit 1
+
+      - name: Check actor permission
+        uses: skjnldsv/check-actor-permission@69e92a3c4711150929bca9fcf34448c5bf5526e7 # v3.0
+        with:
+          require: write
+
+      - name: Add reaction on start
+        uses: peter-evans/create-or-update-comment@e8674b075228eee787fea43ef493e45ece1004c9 # v5.0.0
+        with:
+          token: ${{ secrets.COMMAND_BOT_PAT }} # zizmor: ignore[secrets-outside-env]
+          repository: ${{ github.event.repository.full_name }}
+          comment-id: ${{ github.event.comment.id }}
+          reactions: '+1'
+
+      - name: Init branch
+        uses: xt0rted/pull-request-comment-branch@e8b8daa837e8ea7331c0003c9c316a64c6d8b0b1 # v3.0.0
+        id: comment-branch
+
+      - name: Add reaction on failure
+        uses: peter-evans/create-or-update-comment@e8674b075228eee787fea43ef493e45ece1004c9 # v5.0.0
+        if: failure()
+        with:
+          token: ${{ secrets.COMMAND_BOT_PAT }} # zizmor: ignore[secrets-outside-env]
+          repository: ${{ github.event.repository.full_name }}
+          comment-id: ${{ github.event.comment.id }}
+          reactions: '-1'
+
+  process:
+    runs-on: ubuntu-latest
+    needs: init
+
+    env:
+      TARGET_REPOSITORY: ${{ vars.SUBMODULE_TARGET_REPOSITORY }}
+      SUBMODULE_PATH: ${{ vars.SUBMODULE_PATH }}
+      HEAD_REF: ${{ needs.init.outputs.head_ref }}
+      HEAD_SHA: ${{ needs.init.outputs.head_sha }}
+      BASE_REF: ${{ needs.init.outputs.base_ref }}
+      PR_NUMBER: ${{ github.event.issue.number }}
+      PR_TITLE: ${{ github.event.issue.title }}
+
+    steps:
+      - name: Validate target configuration
+        shell: bash
+        run: |
+          set -euo pipefail
+          [[ "$TARGET_REPOSITORY" =~ ^[[:alnum:]_.-]+/[[:alnum:]_.-]+$ ]] || exit 1
+          [[ "$SUBMODULE_PATH" =~ ^[[:alnum:]_.-]+(/[[:alnum:]_.-]+)*$ ]] || exit 1
+
+      - name: Checkout 3rdparty ${{ needs.init.outputs.head_ref }}
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          path: source
+          persist-credentials: false
+          fetch-depth: 0
+          ref: ${{ needs.init.outputs.head_sha }}
+
+      - name: Set up php
+        uses: shivammathur/setup-php@eb7c497e18156a6bbabfef1d3a82760b9eda3962 # 2.40.0
+        with:
+          php-version: 8.3
+          coverage: none
+
+      - name: Generate composer diff
+        working-directory: source
+        run: |
+          composer global config --no-interaction allow-plugins.ion-bazan/composer-diff true
+          composer global require --no-interaction ion-bazan/composer-diff
+          {
+            echo "- [ ] $SUBMODULE_PATH: ${{ github.server_url }}/${{ github.repository }}/pull/$PR_NUMBER"
+            echo
+            composer diff --with-links --base "origin/$BASE_REF:composer.lock" --target composer.lock
+          } > "$RUNNER_TEMP/pr-body.md"
+          cat "$RUNNER_TEMP/pr-body.md"
+
+      - name: Checkout target repository ${{ needs.init.outputs.base_ref }}
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          repository: ${{ env.TARGET_REPOSITORY }}
+          path: parent
+          persist-credentials: false
+          ref: ${{ needs.init.outputs.base_ref }}
+
+      - name: Fail if target branch already exists
+        working-directory: parent
+        run: |
+          if git ls-remote --exit-code --heads origin "refs/heads/$HEAD_REF"; then
+            echo "Branch $HEAD_REF already exists on $TARGET_REPOSITORY, not overwriting it"
+            exit 1
+          fi
+
+      - name: Setup git
+        working-directory: parent
+        run: |
+          git config --local user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git config --local user.name 'github-actions[bot]'
+
+      - name: Commit submodule reference
+        working-directory: parent
+        run: |
+          git checkout -b "$HEAD_REF"
+          git update-index --cacheinfo "160000,$HEAD_SHA,$SUBMODULE_PATH"
+          git commit --signoff -m "$(sed -E 's/^\[stable[0-9.]*\] *//' <<< "$PR_TITLE")"
+      - name: Push branch and create target pull request
+        env:
+          GH_TOKEN: ${{ secrets.COMMAND_BOT_PAT }} # zizmor: ignore[secrets-outside-env]
+        run: |
+          set -euo pipefail
+          gh auth setup-git
+          git -C parent push origin "$HEAD_REF"
+          url=$(gh pr create --repo "$TARGET_REPOSITORY" --base "$BASE_REF" --head "$HEAD_REF" \
+            --title "$PR_TITLE" \
+            --body-file "$RUNNER_TEMP/pr-body.md")
+          gh pr comment "$PR_NUMBER" --repo '${{ github.repository }}' --body "- Parent PR: $url"
+
+      - name: Add reaction on failure
+        uses: peter-evans/create-or-update-comment@e8674b075228eee787fea43ef493e45ece1004c9 # v5.0.0
+        if: failure()
+        with:
+          token: ${{ secrets.COMMAND_BOT_PAT }} # zizmor: ignore[secrets-outside-env]
+          repository: '${{ github.event.repository.full_name }}'
+          comment-id: '${{ github.event.comment.id }}'
+          reactions: '-1'
