@@ -52,6 +52,28 @@ Consumer-specific changes belong in `.github/workflows/<workflow>.patch`. Do not
 
 The catalog updater targets only the consumer's default branch by default. Projects with maintained long-lived release branches should declare those branches through a consumer-local patch to `sync-workflow-templates.yml`; branch lifecycle is consumer policy and must not be hard-coded in the organization template.
 
+## Submodule dependency commands
+
+The optional `command-submodule-pr.yml` and `command-update-submodule.yml`
+templates track pinned sources from `nextcloud/3rdparty` and `nextcloud/server`.
+The differences needed for other repositories are managed as reviewable
+`patches/nextcloud/` and verified against immutable upstream checksums.
+
+A consumer must install each workflow and configure its parameters using
+Actions variables or a consumer-local `.github/workflows/<name>.yml.patch`:
+
+- `command-submodule-pr.yml`: `SUBMODULE_PR_COMMAND`,
+  `SUBMODULE_TARGET_REPOSITORY` and `SUBMODULE_PATH`.
+- `command-update-submodule.yml`: `SUBMODULE_UPDATE_COMMAND`,
+  `SUBMODULE_SOURCE_REPOSITORY` and `SUBMODULE_PATH`.
+
+The creation command expects a Composer lockfile in the source PR. The update
+command requires a linked source PR already merged into the same target branch
+and uses its exact merged SHA. Both commands require maintainer authorization,
+repository-hosted PR branches and a scoped publishing credential. No force
+push is performed. Publishing credentials are not available to dependency
+analysis or staging steps.
+
 ## Publishing templates
 
 `LibreCodeCoop/.github` is the source of truth for LibreCode-managed workflow templates and the distribution catalog consumed by repository updaters. Templates derived from external upstream sources are refreshed through the pinned upstream/patch pipeline rather than edited as independent downstream implementations.
