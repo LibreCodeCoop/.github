@@ -188,15 +188,6 @@
       "url": "https://raw.githubusercontent.com/nextcloud/3rdparty/ee8d3bf7a2bfcbc1946da3ffd5afb1b08e317527/.github/workflows/command-server-pr.yml",
       "sha256": "856720db49f76fba680b32582bdba88be4d7fc5064aaa7090b3fb77ae03e4ba9",
       "destination": "upstream/vendor/nextcloud/command-submodule-pr.yml"
-    },
-    {
-      "name": "nextcloud-command-update-submodule",
-      "repository": "nextcloud/server",
-      "ref": "master",
-      "path": ".github/workflows/command-pull-3rdparty.yml",
-      "url": "https://raw.githubusercontent.com/nextcloud/server/1e2085f7a0deaeaf7d28d4ce2bb26448cdecd3d9/.github/workflows/command-pull-3rdparty.yml",
-      "sha256": "172935e15a88386b5587be26edc6dac73b026470735873339a457bd9c5572e68",
-      "destination": "upstream/vendor/nextcloud/command-update-submodule.yml"
     }
   ]
 }

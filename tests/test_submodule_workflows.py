@@ -21,7 +21,6 @@ class SubmoduleCommandTest(unittest.TestCase):
         manifest = json.loads((ROOT / "upstream/sources.json").read_text())
         expected = {
             "nextcloud-command-submodule-pr": "nextcloud/3rdparty",
-            "nextcloud-command-update-submodule": "nextcloud/server",
         }
         for name, repo in expected.items():
             with self.subTest(name=name):

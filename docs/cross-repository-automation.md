@@ -54,10 +54,14 @@ The catalog updater targets only the consumer's default branch by default. Proje
 
 ## Submodule dependency commands
 
-The optional `command-submodule-pr.yml` and `command-update-submodule.yml`
-templates track pinned sources from `nextcloud/3rdparty` and `nextcloud/server`.
-The differences needed for other repositories are managed as reviewable
-`patches/nextcloud/` and verified against immutable upstream checksums.
+`command-submodule-pr.yml` tracks a pinned upstream workflow from
+`nextcloud/3rdparty`; its generic changes live in `patches/nextcloud/`
+and are verified against immutable upstream checksums.
+
+`command-update-submodule.yml` is LibreCode-owned. It delegates to the
+version-pinned, tested `actions/update-submodule` Action: the Nextcloud Server
+command is a conceptual reference, but its implementation is intentionally
+not copied because it updates a moving branch tip and can rewrite commits.
 
 A consumer must install each workflow and configure its parameters using
 Actions variables or a consumer-local `.github/workflows/<name>.yml.patch`:
