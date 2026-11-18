@@ -58,25 +58,16 @@ jobs:
         env:
           APP_CLIENT_ID: ${{ vars.WORKFLOW_SYNC_APP_CLIENT_ID }}
           APP_PRIVATE_KEY: ${{ secrets.WORKFLOW_SYNC_APP_PRIVATE_KEY }}
-          LEGACY_APP_CLIENT_ID: ${{ vars.LIBRECODE_WORKFLOW_APP_CLIENT_ID }}
-          LEGACY_APP_PRIVATE_KEY: ${{ secrets.LIBRECODE_WORKFLOW_APP_PRIVATE_KEY }}
           CONSUMER_TOKEN: ${{ secrets.WORKFLOW_SYNC_TOKEN }}
         run: |
           set -euo pipefail
 
           case "${AUTH_MODE}" in
-            github-app|librecode-app)
-              if [[ -n "${APP_CLIENT_ID}" || -n "${APP_PRIVATE_KEY}" ]]; then
-                [[ -n "${APP_CLIENT_ID}" && -n "${APP_PRIVATE_KEY}" ]] || {
-                  echo "::error::WORKFLOW_SYNC_APP_CLIENT_ID and WORKFLOW_SYNC_APP_PRIVATE_KEY must be configured together"
-                  exit 1
-                }
-              elif [[ -n "${LEGACY_APP_CLIENT_ID}" && -n "${LEGACY_APP_PRIVATE_KEY}" ]]; then
-                echo "::notice::Legacy App credentials are supported for compatibility; migrate to WORKFLOW_SYNC_APP_*"
-              else
+            github-app)
+              [[ -n "${APP_CLIENT_ID}" && -n "${APP_PRIVATE_KEY}" ]] || {
                 echo "::error::github-app requires WORKFLOW_SYNC_APP_CLIENT_ID and WORKFLOW_SYNC_APP_PRIVATE_KEY"
                 exit 1
-              fi
+              }
               ;;
             token)
               [[ -n "${CONSUMER_TOKEN}" ]] || {
@@ -93,12 +84,12 @@ jobs:
           esac
 
       - name: Create GitHub App token
-        if: ${{ env.AUTH_MODE == 'github-app' || env.AUTH_MODE == 'librecode-app' }}
+        if: ${{ env.AUTH_MODE == 'github-app' }}
         id: workflow-app-token
         uses: actions/create-github-app-token@64ab729a6294000f5aa4a4bc0b73d1f32bc45510 # v3.3.0
         with:
-          client-id: ${{ vars.WORKFLOW_SYNC_APP_CLIENT_ID || vars.LIBRECODE_WORKFLOW_APP_CLIENT_ID }}
-          private-key: ${{ secrets.WORKFLOW_SYNC_APP_PRIVATE_KEY || secrets.LIBRECODE_WORKFLOW_APP_PRIVATE_KEY }}
+          client-id: ${{ vars.WORKFLOW_SYNC_APP_CLIENT_ID }}
+          private-key: ${{ secrets.WORKFLOW_SYNC_APP_PRIVATE_KEY }}
           owner: ${{ github.repository_owner }}
           repositories: ${{ github.event.repository.name }}
           permission-contents: write
@@ -116,7 +107,7 @@ jobs:
           set -euo pipefail
 
           case "${AUTH_MODE}" in
-            github-app|librecode-app) token="${WORKFLOW_APP_TOKEN}" ;;
+            github-app) token="${WORKFLOW_APP_TOKEN}" ;;
             token) token="${CONSUMER_TOKEN}" ;;
             github-token) token="${GITHUB_TOKEN}" ;;
             *) exit 1 ;;

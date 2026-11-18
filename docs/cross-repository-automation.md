@@ -26,34 +26,20 @@ The updater manages workflows already installed in the consumer repository. It r
 
 ## Authentication
 
-The workflow has a provider-neutral interface. Set the repository variable
-`WORKFLOW_SYNC_AUTH_MODE` to choose a credential source:
+The workflow uses organization-neutral settings; each consumer can select its
+own credentials. Configure `WORKFLOW_SYNC_AUTH_MODE` as:
 
-- `github-app` (default) — preferred. Configure variable
-  `WORKFLOW_SYNC_APP_CLIENT_ID` and secret `WORKFLOW_SYNC_APP_PRIVATE_KEY`.
-- `token` — configure secret `WORKFLOW_SYNC_TOKEN`.
-- `github-token` — use the workflow's built-in `GITHUB_TOKEN`.
+- `github-app` (default) — `WORKFLOW_SYNC_APP_CLIENT_ID` (repository variable)
+  and `WORKFLOW_SYNC_APP_PRIVATE_KEY` (Actions secret).
+- `token` — `WORKFLOW_SYNC_TOKEN` (Actions secret).
+- `github-token` — the built-in `GITHUB_TOKEN`.
 
-A consumer-owned GitHub App is recommended. It needs repository permissions
-**Contents: write**, **Pull requests: write** and **Workflows: write**
-to update files under `.github/workflows`.
+The `github-app` mode requires the complete variable/secret pair; it fails
+before any write when either value is missing. Use a consumer-owned GitHub App
+with **Contents: write**, **Pull requests: write**, and **Workflows: write**
+permissions to update files under `.github/workflows`.
 
-### Compatibility with existing consumers
-
-The former `librecode-app` mode is still accepted as an alias for `github-app`.
-If the generic App credentials are absent, the workflow also accepts the
-previous `LIBRECODE_WORKFLOW_APP_CLIENT_ID` variable and
-`LIBRECODE_WORKFLOW_APP_PRIVATE_KEY` secret. This is a compatibility fallback,
-not a requirement for new consumers. Both generic credentials must be configured
-together; a partially configured generic pair fails validation rather than
-mixing credentials from different Apps.
-
-To migrate an existing consumer, configure the generic variable and secret as
-a pair, change any explicit `librecode-app` mode to `github-app`, verify one
-sync run, and only then retire the previous values. The organization hosting
-the catalog is independent of the App used by the consumer.
-
-`github-token` remains an explicit choice because events created with
+The `github-token` mode is explicit because events emitted using
 `GITHUB_TOKEN` may not trigger normal pull-request automation.
 
 ## Install and update workflows
@@ -106,12 +92,12 @@ Generated or experimental workflows should not be added until they are ready for
 For the npm audit workflow, consumers need a matching local patch and configured
 GitHub App credentials before enrollment.
 
-## LibreCode catalog credentials
+## Catalog credentials
 
 Catalog publication uses the **LibreCode Workflow Automation** GitHub App. Its credentials are stored in `LibreCodeCoop/.github`:
 
-- variable `LIBRECODE_WORKFLOW_APP_CLIENT_ID` (GitHub App Client ID);
-- secret `LIBRECODE_WORKFLOW_APP_PRIVATE_KEY`.
+- variable `WORKFLOW_SYNC_APP_CLIENT_ID` (GitHub App Client ID);
+- secret `WORKFLOW_SYNC_APP_PRIVATE_KEY`.
 
 Write-capable jobs mint short-lived installation tokens scoped to the destination repository. The private key must never be committed.
 
