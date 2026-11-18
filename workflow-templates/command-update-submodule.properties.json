@@ -1,0 +1,8 @@
+{
+  "name": "Update parent PR submodule from merged dependency PR",
+  "description": "Update a submodule pointer using only a verified merged source PR; set the command, repository and path for each consumer.",
+  "iconName": "octicon git-pull-request",
+  "categories": [
+    "Continuous integration"
+  ]
+}

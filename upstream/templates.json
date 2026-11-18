@@ -154,6 +154,14 @@
         "patches/nextcloud/command-submodule-pr.yml.patch"
       ],
       "destination": "workflow-templates/command-submodule-pr.yml"
+    },
+    {
+      "name": "nextcloud-command-update-submodule",
+      "source": "upstream/vendor/nextcloud/command-update-submodule.yml",
+      "patches": [
+        "patches/nextcloud/command-update-submodule.yml.patch"
+      ],
+      "destination": "workflow-templates/command-update-submodule.yml"
     }
   ],
   "runner_aliases": {

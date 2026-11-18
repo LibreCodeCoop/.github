@@ -1,0 +1,227 @@
+--- upstream/vendor/nextcloud/command-update-submodule.yml
++++ workflow-templates/command-update-submodule.yml
+@@ -1,128 +1,126 @@
+ # SPDX-FileCopyrightText: 2022 Nextcloud GmbH and Nextcloud contributors
++# SPDX-FileCopyrightText: 2026 LibreCode coop and contributors
+ # SPDX-License-Identifier: MIT
++name: Update submodule reference
+-name: Update 3rdparty command
+ 
+ on:
+   issue_comment: # zizmor: ignore[dangerous-triggers]
++    types: [created]
+-    types: created
+ 
+ permissions:
+   contents: read
++  pull-requests: read
+ 
+ jobs:
++  update:
++    if: github.event.issue.pull_request != '' && vars.SUBMODULE_UPDATE_COMMAND != '' && github.event.comment.body == vars.SUBMODULE_UPDATE_COMMAND
+-  rebase:
+     runs-on: ubuntu-latest
++    env:
++      SUBMODULE_PATH: ${{ vars.SUBMODULE_PATH }}
++      SOURCE_REPOSITORY: ${{ vars.SUBMODULE_SOURCE_REPOSITORY }}
+-    permissions:
+-      contents: none
+-      pull-requests: read
+-
+-    # On pull requests and if the comment starts with `/update-3rdparty`
+-    if: github.event.issue.pull_request != '' && startsWith(github.event.comment.body, '/update-3rdparty')
+-
+     steps:
+-      # issue_comment events carry no pull_request context in their payload, so we
+-      # must fetch the PR via the API. This also gives us base.ref for free, avoiding
+-      # a second API call. The GITHUB_TOKEN needs pull-requests:read (granted above).
+-      - name: Get pull request metadata
+-        uses: actions/github-script@3a2844b7e9c422d3c10d287c895573f7108da1b3 # v9.0.0
+-        id: get-pr
+-        with:
+-          github-token: ${{ secrets.GITHUB_TOKEN }}
+-          script: |
+-            const pull = await github.rest.pulls.get({
+-              owner: context.repo.owner,
+-              repo: context.repo.repo,
+-              pull_number: context.issue.number,
+-            });
+-            core.setOutput('head_repo', pull.data.head.repo?.full_name ?? '');
+-            core.setOutput('base_ref',  pull.data.base.ref);
+-
+-      - name: Disabled on forks
+-        if: steps.get-pr.outputs.head_repo != github.repository
+-        run: |
+-          echo 'Can not execute /update-3rdparty on forks'
+-          exit 1
+-
+       - name: Check actor permission
+         uses: skjnldsv/check-actor-permission@69e92a3c4711150929bca9fcf34448c5bf5526e7 # v3.0
+         with:
+           require: write
+ 
++      # This read-only step never executes code from the pull request.
++      - name: Resolve merged submodule pull request
++        id: resolve
++        uses: actions/github-script@3a2844b7e9c422d3c10d287c895573f7108da1b3 # v9.0.0
+-      - name: Add reaction on start
+-        uses: peter-evans/create-or-update-comment@e8674b075228eee787fea43ef493e45ece1004c9 # v5.0.0
+         with:
++          github-token: ${{ github.token }}
++          script: |
++            const owner = context.repo.owner;
++            const repo = context.repo.repo;
++            const path = process.env.SUBMODULE_PATH;
++            const sourceRepo = process.env.SOURCE_REPOSITORY;
++            if (!/^[a-zA-Z0-9_.-]+\/[a-zA-Z0-9_.-]+$/.test(sourceRepo) ||
++                !/^[a-zA-Z0-9_.-]+(\/[a-zA-Z0-9_.-]+)*$/.test(path)) {
++              throw new Error('Invalid submodule repository or path configuration');
++            }
++            const { data: pr } = await github.rest.pulls.get({
++              owner, repo, pull_number: context.issue.number,
++            });
++            if (pr.state !== 'open' ||
++                pr.head.repo?.full_name !== context.repo.owner + '/' + context.repo.repo ||
++                !/^(main|stable\d+)$/.test(pr.base.ref)) {
++              throw new Error('Expected an open, in-repository PR targeting main or stable');
++            }
++            const prefix = path + ': https://github.com/' + sourceRepo + '/pull/';
++            const references = (pr.body || '').split(/\r?\n/)
++              .map(line => line.match(/^\s*-\s*\[[ xX]\]\s*(.*)$/))
++              .filter(Boolean)
++              .map(match => match[1].trim())
++              .filter(line => line.startsWith(prefix));
++            if (references.length !== 1) {
++              throw new Error('Expected exactly one linked submodule PR in the body');
++            }
++            const sourcePr = references[0].slice(prefix.length).trim();
++            if (!/^[1-9]\d*$/.test(sourcePr)) {
++              throw new Error('Invalid linked submodule PR number');
++            }
++            const [sourceOwner, sourceName] = sourceRepo.split('/');
++            const { data: source } = await github.rest.pulls.get({
++              owner: sourceOwner, repo: sourceName, pull_number: Number(sourcePr),
++            });
++            if (!source.merged_at || !/^[0-9a-f]{40}$/.test(source.merge_commit_sha || '') ||
++                source.base.ref !== pr.base.ref) {
++              throw new Error('Linked submodule PR must be merged into the same branch');
++            }
++            core.setOutput('head_ref', pr.head.ref);
++            core.setOutput('head_sha', pr.head.sha);
++            core.setOutput('merge_sha', source.merge_commit_sha);
++            core.setOutput('source_pr', sourcePr);
+-          token: ${{ secrets.COMMAND_BOT_PAT }}
+-          repository: ${{ github.event.repository.full_name }}
+-          comment-id: ${{ github.event.comment.id }}
+-          reactions: '+1'
+ 
++      - name: Checkout trusted default branch
+-      - name: Init branch
+-        uses: xt0rted/pull-request-comment-branch@e8b8daa837e8ea7331c0003c9c316a64c6d8b0b1 # v3.0.0
+-        id: comment-branch
+-
+-      - name: Checkout ${{ steps.comment-branch.outputs.head_ref }}
+         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+         with:
+           persist-credentials: false
+-          submodules: true
+           fetch-depth: 0
++          ref: ${{ github.event.repository.default_branch }}
+-          token: ${{ secrets.COMMAND_BOT_PAT }}
+-          ref: ${{ steps.comment-branch.outputs.head_ref }}
+ 
++      - name: Stage and commit submodule pointer
++        id: update
++        shell: bash
+-      - name: Register server reference to fallback to master branch
+         env:
++          HEAD_SHA: ${{ steps.resolve.outputs.head_sha }}
++          MERGE_SHA: ${{ steps.resolve.outputs.merge_sha }}
++          SOURCE_PR: ${{ steps.resolve.outputs.source_pr }}
+-          base_ref: ${{ steps.get-pr.outputs.base_ref }}
+         run: |
++          set -euo pipefail
++          [[ "$HEAD_SHA" =~ ^[0-9a-f]{40}$ ]]
++          [[ "$MERGE_SHA" =~ ^[0-9a-f]{40}$ ]]
++          git fetch --no-tags origin "$HEAD_SHA"
++          git -c core.hooksPath=/dev/null checkout --detach "$HEAD_SHA"
++          mode=$(git ls-files --stage -- "$SUBMODULE_PATH" | awk '{print $1}')
++          if ${{ "$mode" != "160000" }}; then
++            echo "::error::The configured path is not a git submodule"
++            exit 1
++          fi
++          git update-index --cacheinfo "160000,$MERGE_SHA,$SUBMODULE_PATH"
++          if git diff --cached --quiet; then
++            echo 'Submodule already points to the merged commit'
++            exit 0
+-          if [[ "$base_ref" == "main" || "$base_ref" == "master" ]]; then
+-            echo "server_ref=master" >> "$GITHUB_ENV"
+-            echo "Setting server_ref to master"
+-          elif [[ "$base_ref" =~ ^stable[0-9]+$ ]]; then
+-            echo "server_ref=$base_ref" >> "$GITHUB_ENV"
+-            echo "Setting server_ref to $base_ref"
+-          else
+-            echo "Not based on master/main/stable*, so skipping pull 3rdparty command"
+           fi
++          git config --local user.name 'github-actions[bot]'
++          git config --local user.email '41898282+github-actions[bot]@users.noreply.github.com'
++          git -c core.hooksPath=/dev/null commit --signoff -m "chore(deps): update $SUBMODULE_PATH from merged PR #$SOURCE_PR"
++          echo "changed=true" >> "$GITHUB_OUTPUT"
+ 
++      - name: Push updated reference and comment
++        if: steps.update.outputs.changed == 'true'
+-      - name: Setup git
+-        run: |
+-          git config --local user.email 'nextcloud-command@users.noreply.github.com'
+-          git config --local user.name 'nextcloud-command'
+-
+-      - name: Add reaction on failure
+-        uses: peter-evans/create-or-update-comment@e8674b075228eee787fea43ef493e45ece1004c9 # v5.0.0
+-        if: ${{ env.server_ref == '' }}
+-        with:
+-          token: ${{ secrets.COMMAND_BOT_PAT }}
+-          repository: ${{ github.event.repository.full_name }}
+-          comment-id: ${{ github.event.comment.id }}
+-          reactions: '-1'
+-
+-      - name: Pull 3rdparty
+-        if: ${{ env.server_ref != '' }}
+-        run: |
+-          git -C 3rdparty fetch origin "$server_ref"
+-          git -C 3rdparty checkout FETCH_HEAD
+-
+-      - name: Commit and push changes
+-        if: ${{ env.server_ref != '' }}
+         env:
++          GH_TOKEN: ${{ secrets.COMMAND_BOT_PAT }} # zizmor: ignore[secrets-outside-env]
++          HEAD_REF: ${{ steps.resolve.outputs.head_ref }}
++          MERGE_SHA: ${{ steps.resolve.outputs.merge_sha }}
++          SOURCE_PR: ${{ steps.resolve.outputs.source_pr }}
++          PR_NUMBER: ${{ github.event.issue.number }}
++        shell: bash
+-          BOT_TOKEN: ${{ secrets.COMMAND_BOT_PAT }}  # zizmor: ignore[secrets-outside-env]
+         run: |
++          set -euo pipefail
++          gh auth setup-git
++          # A normal push refuses to overwrite a branch that moved meanwhile.
++          git push origin "HEAD:refs/heads/$HEAD_REF"
++          gh pr comment "$PR_NUMBER" --repo "$GITHUB_REPOSITORY" \
++            --body "Updated $SUBMODULE_PATH to $SOURCE_REPOSITORY#$SOURCE_PR ($MERGE_SHA)."
+-          git add 3rdparty
+-          git remote set-url origin "https://x-access-token:${BOT_TOKEN}@github.com/${{ github.repository }}.git"
+-          if git diff --quiet HEAD~1 HEAD -- 3rdparty; then
+-            git commit -s -m "chore(3rdparty): Update submodule to latest $server_ref"
+-            git push
+-          else
+-            git commit -s --amend --no-edit
+-            git push --force-with-lease
+-          fi
+-
+-      - name: Add reaction on failure
+-        uses: peter-evans/create-or-update-comment@e8674b075228eee787fea43ef493e45ece1004c9 # v5.0.0
+-        if: failure()
+-        with:
+-          token: ${{ secrets.COMMAND_BOT_PAT }}
+-          repository: ${{ github.event.repository.full_name }}
+-          comment-id: ${{ github.event.comment.id }}
+-          reactions: '-1'
