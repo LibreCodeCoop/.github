@@ -1,6 +1,6 @@
 --- upstream/vendor/nextcloud/sync-workflow-templates.yml
 +++ workflow-templates/sync-workflow-templates.yml
-@@ -1,13 +1,16 @@
+@@ -1,18 +1,21 @@
  # This workflow is provided via the organization template repository
  #
 +# https://github.com/LibreCodeCoop/.github
@@ -20,11 +20,12 @@
  name: Update workflows
  on:
    workflow_dispatch:
-@@ -14,3 +17,3 @@
    schedule:
--      - cron: "45 22 * * 6"
 +      - cron: "5 2 * * 0"
+-      - cron: "45 22 * * 6"
  
+ permissions:
+   contents: read
 @@ -26,9 +29,6 @@
        matrix:
          branches:
@@ -35,8 +36,13 @@
  
      name: Update workflows in ${{ matrix.branches }}
  
-@@ -38,16 +38,123 @@
+@@ -36,18 +36,103 @@
+       contents: write
+       pull-requests: write
  
++    env:
++      AUTH_MODE: ${{ vars.WORKFLOW_SYNC_AUTH_MODE || 'github-app' }}
++
      steps:
        - name: Check actor permission
 +        if: ${{ github.event_name == 'workflow_dispatch' }}
@@ -54,24 +60,15 @@
 +      - name: Validate workflow sync authentication
 +        shell: bash
 +        env:
-+          AUTH_MODE: ${{ vars.WORKFLOW_SYNC_AUTH_MODE || 'librecode-app' }}
-+          LIBRECODE_APP_CLIENT_ID: ${{ vars.LIBRECODE_WORKFLOW_APP_CLIENT_ID }}
-+          LIBRECODE_APP_PRIVATE_KEY: ${{ secrets.LIBRECODE_WORKFLOW_APP_PRIVATE_KEY }}
-+          CONSUMER_APP_CLIENT_ID: ${{ vars.WORKFLOW_SYNC_APP_CLIENT_ID }}
-+          CONSUMER_APP_PRIVATE_KEY: ${{ secrets.WORKFLOW_SYNC_APP_PRIVATE_KEY }}
++          APP_CLIENT_ID: ${{ vars.WORKFLOW_SYNC_APP_CLIENT_ID }}
++          APP_PRIVATE_KEY: ${{ secrets.WORKFLOW_SYNC_APP_PRIVATE_KEY }}
 +          CONSUMER_TOKEN: ${{ secrets.WORKFLOW_SYNC_TOKEN }}
 +        run: |
 +          set -euo pipefail
 +
 +          case "${AUTH_MODE}" in
-+            librecode-app)
-+              [[ -n "${LIBRECODE_APP_CLIENT_ID}" && -n "${LIBRECODE_APP_PRIVATE_KEY}" ]] || {
-+                echo "::error::librecode-app requires LIBRECODE_WORKFLOW_APP_CLIENT_ID and LIBRECODE_WORKFLOW_APP_PRIVATE_KEY"
-+                exit 1
-+              }
-+              ;;
 +            github-app)
-+              [[ -n "${CONSUMER_APP_CLIENT_ID}" && -n "${CONSUMER_APP_PRIVATE_KEY}" ]] || {
++              [[ -n "${APP_CLIENT_ID}" && -n "${APP_PRIVATE_KEY}" ]] || {
 +                echo "::error::github-app requires WORKFLOW_SYNC_APP_CLIENT_ID and WORKFLOW_SYNC_APP_PRIVATE_KEY"
 +                exit 1
 +              }
@@ -90,23 +87,10 @@
 +              ;;
 +          esac
 +
-+      - name: Create LibreCode GitHub App token
-+        if: ${{ vars.WORKFLOW_SYNC_AUTH_MODE == '' || vars.WORKFLOW_SYNC_AUTH_MODE == 'librecode-app' }}
-+        id: librecode-app-token
-+        uses: actions/create-github-app-token@bcd2ba49218906704ab6c1aa796996da409d3eb1 # v3.2.0
-+        with:
-+          client-id: ${{ vars.LIBRECODE_WORKFLOW_APP_CLIENT_ID }}
-+          private-key: ${{ secrets.LIBRECODE_WORKFLOW_APP_PRIVATE_KEY }}
-+          owner: ${{ github.repository_owner }}
-+          repositories: ${{ github.event.repository.name }}
-+          permission-contents: write
-+          permission-pull-requests: write
-+          permission-workflows: write
-+
-+      - name: Create consumer GitHub App token
-+        if: ${{ vars.WORKFLOW_SYNC_AUTH_MODE == 'github-app' }}
-+        id: consumer-app-token
-+        uses: actions/create-github-app-token@bcd2ba49218906704ab6c1aa796996da409d3eb1 # v3.2.0
++      - name: Create GitHub App token
++        if: ${{ env.AUTH_MODE == 'github-app' }}
++        id: workflow-app-token
++        uses: actions/create-github-app-token@64ab729a6294000f5aa4a4bc0b73d1f32bc45510 # v3.3.0
 -        uses: skjnldsv/check-actor-permission@69e92a3c4711150929bca9fcf34448c5bf5526e7 # v3.0
          with:
 +          client-id: ${{ vars.WORKFLOW_SYNC_APP_CLIENT_ID }}
@@ -121,17 +105,14 @@
 +        id: auth-token
 +        shell: bash
 +        env:
-+          AUTH_MODE: ${{ vars.WORKFLOW_SYNC_AUTH_MODE || 'librecode-app' }}
-+          LIBRECODE_APP_TOKEN: ${{ steps.librecode-app-token.outputs.token }}
-+          CONSUMER_APP_TOKEN: ${{ steps.consumer-app-token.outputs.token }}
++          WORKFLOW_APP_TOKEN: ${{ steps.workflow-app-token.outputs.token }}
 +          CONSUMER_TOKEN: ${{ secrets.WORKFLOW_SYNC_TOKEN }}
 +          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 +        run: |
 +          set -euo pipefail
 +
 +          case "${AUTH_MODE}" in
-+            librecode-app) token="${LIBRECODE_APP_TOKEN}" ;;
-+            github-app) token="${CONSUMER_APP_TOKEN}" ;;
++            github-app) token="${WORKFLOW_APP_TOKEN}" ;;
 +            token) token="${CONSUMER_TOKEN}" ;;
 +            github-token) token="${GITHUB_TOKEN}" ;;
 +            *) exit 1 ;;
@@ -162,10 +143,17 @@
  
        - name: Checkout app
          uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-@@ -56,112 +163,31 @@
+@@ -56,112 +141,31 @@
            path: target
            ref: ${{ matrix.branches }}
  
++      - name: Synchronize workflow templates
++        id: sync
++        uses: ./source/actions/sync-workflows
++        with:
++          source: source/workflow-templates
++          target: target
++          catalog-commit: ${{ steps.catalog-revision.outputs.sha }}
 -      - name: Check for active merge freeze
 -        id: freeze
 -        env:
@@ -189,14 +177,7 @@
 -            echo 'active=true' >> $GITHUB_OUTPUT
 -          fi
 -          rm version.php
--
-+      - name: Synchronize workflow templates
-+        id: sync
-+        uses: ./source/actions/sync-workflows
-+        with:
-+          source: source/workflow-templates
-+          target: target
-+          catalog-commit: ${{ steps.catalog-revision.outputs.sha }}
+ 
 -      - name: Copy all workflow templates
 -        if: steps.freeze.outputs.active != 'true'
 -        run: |
@@ -207,7 +188,7 @@
 -            if [ -f "$workflow" ]; then
 -              filename=$(basename "$workflow")
 -              target_file="./target/.github/workflows/$filename"
- 
+-
 -              # Only copy if the file exists in the target repository
 -              if [ -f "$target_file" ]; then
 -                if [ -f "./target/.github/actions-lock.txt" ]; then
@@ -263,8 +244,8 @@
 -          echo "DRAFT_ONLY=${draft_only}" >> $GITHUB_ENV
 -
        - name: Create Pull Request
--        if: steps.freeze.outputs.active != 'true'
 +        if: ${{ steps.sync.outputs.changed == 'true' }}
+-        if: steps.freeze.outputs.active != 'true'
          uses: peter-evans/create-pull-request@5f6978faf089d4d20b00c7766989d076bb2fc7f1 # v8.1.1
          with:
 +          token: ${{ steps.auth-token.outputs.token }}

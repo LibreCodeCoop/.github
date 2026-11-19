@@ -50,8 +50,8 @@ class NpmAuditWorkflowContractTest(unittest.TestCase):
         content = self.content
         self.assertIn("permissions:\n  contents: read\n", content)
         self.assertIn("uses: actions/create-github-app-token@", content)
-        self.assertIn("client-id: ${{ vars.LIBRECODE_WORKFLOW_APP_CLIENT_ID }}", content)
-        self.assertIn("private-key: ${{ secrets.LIBRECODE_WORKFLOW_APP_PRIVATE_KEY }}", content)
+        self.assertIn("client-id: ${{ vars.WORKFLOW_SYNC_APP_CLIENT_ID }}", content)
+        self.assertIn("private-key: ${{ secrets.WORKFLOW_SYNC_APP_PRIVATE_KEY }}", content)
         self.assertIn("permission-contents: write", content)
         self.assertIn("permission-pull-requests: write", content)
         self.assertIn("token: ${{ steps.app-token.outputs.token }}", content)
