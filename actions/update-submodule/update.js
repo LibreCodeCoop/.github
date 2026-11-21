@@ -3,11 +3,6 @@
 
 'use strict'
 
-const BOT = {
-  name: 'github-actions[bot]',
-  email: '41898282+github-actions[bot]@users.noreply.github.com',
-}
-
 function validatePath(path) {
   return /^[a-zA-Z0-9_.-]+(\/[a-zA-Z0-9_.-]+)*$/.test(path) &&
     !path.split('/').some(part => part === '.' || part === '..')
@@ -70,6 +65,12 @@ async function updateSubmodule({ github, context, core, env }) {
     return
   }
 
+  const signerName = env.SUBMODULE_SIGNER_NAME
+  const signerEmail = env.SUBMODULE_SIGNER_EMAIL
+  if (!signerName || /[\r\n<>]/.test(signerName) ||
+      !signerEmail || /[\r\n<>\s]/.test(signerEmail)) {
+    throw new Error('A trusted GitHub App signing identity is required')
+  }
   const { data: tree } = await github.rest.git.createTree({
     owner, repo, base_tree: commit.tree.sha,
     tree: [{ path: submodule, mode: '160000', type: 'commit',
@@ -78,11 +79,18 @@ async function updateSubmodule({ github, context, core, env }) {
   const subject = 'chore(deps): update ' + submodule +
     ' from merged PR #' + sourceNumber
   const message = subject + '\n\nSigned-off-by: ' +
-    BOT.name + ' <' + BOT.email + '>'
+    signerName + ' <' + signerEmail + '>'
+  // GitHub signs commits created without explicit author/committer when
+  // authenticated with a GitHub App installation token.
   const { data: updated } = await github.rest.git.createCommit({
     owner, repo, message, tree: tree.sha, parents: [pr.head.sha],
-    author: BOT, committer: BOT,
   })
+  if (updated.verification?.verified !== true ||
+      updated.author?.name !== signerName ||
+      updated.author?.email !== signerEmail ||
+      updated.committer?.email !== signerEmail) {
+    throw new Error('GitHub did not verify the signer identity; refusing to update the branch')
+  }
   await github.rest.git.updateRef({
     owner, repo, ref: 'heads/' + pr.head.ref, sha: updated.sha, force: false,
   })

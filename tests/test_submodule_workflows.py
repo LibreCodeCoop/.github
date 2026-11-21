@@ -58,9 +58,12 @@ class SubmoduleCommandTest(unittest.TestCase):
         self.assertIn("uses: actions/github-script@", action)
         self.assertIn("source-repository:", action)
         self.assertIn("submodule-path:", action)
+        self.assertIn("signer-name:", action)
+        self.assertIn("signer-email:", action)
+        self.assertIn("SUBMODULE_SIGNER_NAME:", action)
         impl = (ROOT / "actions/update-submodule/update.js").read_text()
         for contract in ("force: false", "Signed-off-by:", "createTree",
-                         "createCommit", "updateRef"):
+                         "createCommit", "updateRef", "verification?.verified"):
             self.assertIn(contract, impl)
 
     def test_commands_use_scoped_temporary_tokens(self) -> None:
@@ -85,6 +88,14 @@ class SubmoduleCommandTest(unittest.TestCase):
         self.assertIn("permission-contents: write", source)
         self.assertIn("permission-pull-requests: write", source)
         self.assertIn("token: " + "$" + "{{ steps.workflow-app-token.outputs.token }}", source)
+        self.assertIn("steps.workflow-app-token.outputs.app-slug", source)
+        self.assertIn("steps.signer.outputs.name", source)
+        self.assertIn("steps.signer.outputs.email", source)
+
+    def test_workflow_sync_uses_verified_bot_commits(self) -> None:
+        workflow = (ROOT / "workflow-templates/sync-workflow-templates.yml").read_text()
+        self.assertIn("sign-commits: true", workflow)
+        self.assertIn("signoff: true", workflow)
 
     def test_update_action_negative_and_positive_cases(self) -> None:
         if not shutil.which("node"):

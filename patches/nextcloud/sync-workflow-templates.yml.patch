@@ -143,7 +143,7 @@
  
        - name: Checkout app
          uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-@@ -56,112 +141,31 @@
+@@ -56,112 +141,32 @@
            path: target
            ref: ${{ matrix.branches }}
  
@@ -256,6 +256,7 @@
 -          author: nextcloud-command <nextcloud-command@users.noreply.github.com>
            path: target
            signoff: true
++          sign-commits: true
            branch: 'automated/noid/${{ matrix.branches }}-update-workflows'
            title: '[${{ matrix.branches }}] ci(actions): Update workflow templates from organization template repository'
 +          draft: ${{ steps.sync.outputs.patch_failed == 'true' }}

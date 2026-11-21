@@ -159,6 +159,7 @@ jobs:
           author: github-actions[bot] <41898282+github-actions[bot]@users.noreply.github.com>
           path: target
           signoff: true
+          sign-commits: true
           branch: 'automated/noid/${{ matrix.branches }}-update-workflows'
           title: '[${{ matrix.branches }}] ci(actions): Update workflow templates from organization template repository'
           draft: ${{ steps.sync.outputs.patch_failed == 'true' }}

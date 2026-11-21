@@ -32,9 +32,25 @@ jobs:
           permission-pull-requests: write
           permission-workflows: write
 
+      - name: Resolve GitHub App commit identity
+        id: signer
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+          APP_SLUG: ${{ steps.workflow-app-token.outputs.app-slug }}
+        run: |
+          set -euo pipefail
+          [[ "$APP_SLUG" =~ ^[a-zA-Z0-9-]+$ ]] || exit 1
+          app_id="$(gh api "apps/$APP_SLUG" --jq '.id')"
+          [[ "$app_id" =~ ^[0-9]+$ ]] || exit 1
+          echo "name=${APP_SLUG}[bot]" >> "$GITHUB_OUTPUT"
+          echo "email=${app_id}+${APP_SLUG}[bot]@users.noreply.github.com" >> "$GITHUB_OUTPUT"
+
       - name: Update merged submodule reference
         uses: LibreCodeCoop/.github/actions/update-submodule@2a75cff7318334499053ced8b72d04bc0f795baf # source pinned
         with:
           token: ${{ steps.workflow-app-token.outputs.token }}
           source-repository: ${{ vars.SUBMODULE_SOURCE_REPOSITORY }}
           submodule-path: ${{ vars.SUBMODULE_PATH }}
+          signer-name: ${{ steps.signer.outputs.name }}
+          signer-email: ${{ steps.signer.outputs.email }}
