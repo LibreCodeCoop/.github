@@ -245,7 +245,7 @@ jobs:
             exit 1
           }
           [[ -n "$TARGET_URL" ]] || exit 1
-          gh pr comment "$PR_NUMBER" --repo "$GITHUB_REPOSITORY" --body "- Parent PR: $TARGET_URL"
+          gh api --method POST "repos/$GITHUB_REPOSITORY/issues/$PR_NUMBER/comments" --raw-field body="- Parent PR: $TARGET_URL"
 
       - name: Add reaction on failure
         uses: peter-evans/create-or-update-comment@e8674b075228eee787fea43ef493e45ece1004c9 # v5.0.0
