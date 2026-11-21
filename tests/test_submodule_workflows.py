@@ -60,6 +60,29 @@ class SubmoduleCommandTest(unittest.TestCase):
                          "createCommit", "updateRef"):
             self.assertIn(contract, impl)
 
+    def test_commands_use_scoped_temporary_tokens(self) -> None:
+        source = (ROOT / "workflow-templates/command-submodule-pr.yml").read_text()
+        self.assertNotIn("COMMAND_BOT_PAT", source)
+        self.assertIn("issues: write", source)
+        self.assertIn("token: " + "$" + "{{ github.token }}", source)
+        self.assertIn("id: target-scope", source)
+        self.assertIn("steps.target-scope.outputs.owner", source)
+        self.assertIn("steps.target-scope.outputs.repository", source)
+        self.assertIn("permission-contents: write", source)
+        self.assertIn("permission-pull-requests: write", source)
+        self.assertIn("GH_TOKEN: " + "$" + "{{ steps.target-app-token.outputs.token }}", source)
+        self.assertIn('GH_TOKEN="$SOURCE_GITHUB_TOKEN" gh pr comment', source)
+        self.assertLess(source.index("- name: Commit submodule reference"),
+                        source.index("- name: Create scoped target GitHub App token"))
+
+    def test_update_uses_temporary_app_token(self) -> None:
+        source = (ROOT / "workflow-templates/command-update-submodule.yml").read_text()
+        self.assertNotIn("COMMAND_BOT_PAT", source)
+        self.assertIn("Create scoped GitHub App token", source)
+        self.assertIn("permission-contents: write", source)
+        self.assertIn("permission-pull-requests: write", source)
+        self.assertIn("token: " + "$" + "{{ steps.workflow-app-token.outputs.token }}", source)
+
     def test_update_action_negative_and_positive_cases(self) -> None:
         if not shutil.which("node"):
             self.skipTest("Node.js unavailable")
