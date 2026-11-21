@@ -32,18 +32,19 @@ function fixture(changes = ['composer/Example.php']) {
       createTree: wrap('git.createTree', () => ({sha: sha('d')})),
       createCommit: wrap('git.createCommit', () => ({
         sha: sha('e'), verification: {verified: true},
-        author: signer, committer: signer,
+        author: signer, committer: {name: 'GitHub', email: 'noreply@github.com'},
       })),
       updateRef: wrap('git.updateRef', () => ({})),
     },
   }}
-  const core = {notice() {}}
+  const outputs = {}
+  const core = {notice() {}, info() {}, setOutput(key, value) { outputs[key] = value }}
   const context = {repo: {owner: 'LibreSign', repo: '3rdparty'}, issue: {number: 77}}
   const env = {SOURCE_HEAD: sha('a'), HEAD_REF: pr.head.ref,
     SIGNER_NAME: signer.name, SIGNER_EMAIL: signer.email}
   const changed = () => changes
   const clean = () => fs.rmSync(root, {recursive: true, force: true})
-  return {github, context, core, env, root, changed, calls, pr, clean}
+  return {github, context, core, env, root, changed, calls, pr, clean, outputs}
 }
 
 test('creates verified, DCO-compliant, fast-forward-only vendor commit', async () => {
@@ -63,6 +64,8 @@ test('creates verified, DCO-compliant, fast-forward-only vendor commit', async (
     assert.match(signed.message, /Signed-off-by: workflow-bot\[bot\]/)
     const pushed = f.calls.find(c => c.name === 'git.updateRef').params
     assert.equal(pushed.force, false)
+    assert.equal(f.outputs.changed, 'true')
+    assert.equal(f.outputs.commit_sha, sha('e'))
   } finally {f.clean()}
 })
 
@@ -111,5 +114,32 @@ test('handles a true no-op without creating commits', async () => {
   try {
     await commitGeneratedVendor(f)
     assert.equal(f.calls.some(c => c.name === 'git.createCommit'), false)
+    assert.equal(f.outputs.changed, 'false')
+    assert.equal(f.outputs.commit_sha, '')
+  } finally {f.clean()}
+})
+
+test('rejects a verified vendor commit when author does not match DCO', async () => {
+  const f = fixture()
+  f.github.rest.git.createCommit = async () => ({data: {
+    sha: sha('e'), verification: {verified: true, reason: 'valid'},
+    author: {name: 'another', email: 'another@example.com'},
+    committer: {email: 'noreply@github.com'},
+  }})
+  try {
+    await assert.rejects(commitGeneratedVendor(f), /author does not match/)
+    assert.equal(f.calls.some(c => c.name === 'git.updateRef'), false)
+  } finally {f.clean()}
+})
+
+test('unsigned vendor commit reports its GitHub verification reason', async () => {
+  const f = fixture()
+  f.github.rest.git.createCommit = async () => ({data: {
+    sha: sha('e'), verification: {verified: false, reason: 'unsigned'},
+    author: {name: f.env.SIGNER_NAME, email: f.env.SIGNER_EMAIL},
+  }})
+  try {
+    await assert.rejects(commitGeneratedVendor(f), /reason: unsigned/)
+    assert.equal(f.calls.some(c => c.name === 'git.updateRef'), false)
   } finally {f.clean()}
 })
