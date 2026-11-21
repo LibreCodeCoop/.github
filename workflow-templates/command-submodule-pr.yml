@@ -10,6 +10,8 @@ permissions:
   contents: read
   pull-requests: read
   issues: write
+  checks: read
+  statuses: read
 
 jobs:
   init:
@@ -79,6 +81,9 @@ jobs:
     env:
       TARGET_REPOSITORY: ${{ vars.SUBMODULE_TARGET_REPOSITORY }}
       SUBMODULE_PATH: ${{ vars.SUBMODULE_PATH }}
+      TARGET_PR_LABELS: ${{ vars.SUBMODULE_PR_LABELS }}
+      TARGET_PR_REVIEWER: ${{ vars.SUBMODULE_PR_REVIEWER }}
+      COMMAND_ACTOR: ${{ github.event.comment.user.login }}
       HEAD_REF: ${{ needs.init.outputs.head_ref }}
       HEAD_SHA: ${{ needs.init.outputs.head_sha }}
       BASE_REF: ${{ needs.init.outputs.base_ref }}
@@ -95,6 +100,23 @@ jobs:
           [[ "$SUBMODULE_PATH" =~ ^[[:alnum:]_.-]+(/[[:alnum:]_.-]+)*$ ]] || exit 1
           echo "owner=${TARGET_REPOSITORY%%/*}" >> "$GITHUB_OUTPUT"
           echo "repository=${TARGET_REPOSITORY#*/}" >> "$GITHUB_OUTPUT"
+
+      - name: Require successful source PR checks
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          source_head="$(gh api "repos/$GITHUB_REPOSITORY/pulls/$PR_NUMBER" --jq '.head.sha')"
+          if [[ "$source_head" != "$HEAD_SHA" ]]; then
+            echo "::error::Source PR head changed; rerun after reviewing the new revision"
+            exit 1
+          fi
+          gh pr checks "$PR_NUMBER" --repo "$GITHUB_REPOSITORY"
+          if [[ "$(gh api "repos/$GITHUB_REPOSITORY/pulls/$PR_NUMBER" --jq '.head.sha')" != "$HEAD_SHA" ]]; then
+            echo "::error::Source PR head changed during CI verification"
+            exit 1
+          fi
 
       - name: Checkout 3rdparty ${{ needs.init.outputs.head_ref }}
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
@@ -169,10 +191,27 @@ jobs:
         run: |
           set -euo pipefail
           gh auth setup-git
+          # Never publish a pointer after the source PR changes.
+          source_head="$(GH_TOKEN="$SOURCE_GITHUB_TOKEN" gh api "repos/$GITHUB_REPOSITORY/pulls/$PR_NUMBER" --jq '.head.sha')"
+          if [[ "$source_head" != "$HEAD_SHA" ]]; then
+            echo "::error::Source PR head changed before publication"
+            exit 1
+          fi
+          create_args=(--repo "$TARGET_REPOSITORY" --base "$BASE_REF" --head "$HEAD_REF" \
+            --title "$PR_TITLE" --body-file "$RUNNER_TEMP/pr-body.md")
+          IFS=',' read -r -a labels <<< "$TARGET_PR_LABELS"
+          for label in "${labels[@]}"; do
+            label="${label#"${label%%[![:space:]]*}"}"
+            label="${label%"${label##*[![:space:]]}"}"
+            [[ -z "$label" ]] || create_args+=(--label "$label")
+          done
+          if [[ "$TARGET_PR_REVIEWER" == "commenter" ]]; then
+            create_args+=(--reviewer "$COMMAND_ACTOR")
+          elif [[ -n "$TARGET_PR_REVIEWER" ]]; then
+            create_args+=(--reviewer "$TARGET_PR_REVIEWER")
+          fi
           git -C parent push origin "$HEAD_REF"
-          url=$(gh pr create --repo "$TARGET_REPOSITORY" --base "$BASE_REF" --head "$HEAD_REF" \
-            --title "$PR_TITLE" \
-            --body-file "$RUNNER_TEMP/pr-body.md")
+          url=$(gh pr create "${create_args[@]}")
           GH_TOKEN="$SOURCE_GITHUB_TOKEN" gh pr comment "$PR_NUMBER" --repo '${{ github.repository }}' --body "- Parent PR: $url"
 
       - name: Add reaction on failure

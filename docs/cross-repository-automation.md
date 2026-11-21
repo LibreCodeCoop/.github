@@ -72,11 +72,20 @@ A consumer must install each workflow and configure its parameters using
 Actions variables or a consumer-local `.github/workflows/<name>.yml.patch`:
 
 - `command-submodule-pr.yml`: `SUBMODULE_PR_COMMAND`,
-  `SUBMODULE_TARGET_REPOSITORY` and `SUBMODULE_PATH`.
+  `SUBMODULE_TARGET_REPOSITORY` and `SUBMODULE_PATH`. The optional
+  `SUBMODULE_PR_LABELS` is a comma-separated list of labels already present in
+  the target repository; `SUBMODULE_PR_REVIEWER` is an optional GitHub login,
+  or `commenter` to request review from the maintainer who invoked the command.
 - `command-update-submodule.yml`: `SUBMODULE_UPDATE_COMMAND`,
   `SUBMODULE_SOURCE_REPOSITORY` and `SUBMODULE_PATH`.
 
-The creation command expects a Composer lockfile in the source PR. The update
+The creation command expects a Composer lockfile in the source PR. It checks
+all source PR checks with read-only `checks` and `statuses` permissions and
+refuses failed, pending, absent or stale checks. It revalidates the source HEAD
+before pushing to the target. A failed target PR creation can leave a branch
+without a PR; do not force-push or overwrite that branch to retry.
+
+The update
 command requires a linked source PR already merged into the same target branch
 and uses its exact merged SHA. Both commands require maintainer authorization,
 repository-hosted PR branches and a scoped publishing credential. No force

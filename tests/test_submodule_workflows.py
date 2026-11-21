@@ -5,9 +5,12 @@
 
 import hashlib
 import json
+import os
 import re
 import shutil
 import subprocess
+import tempfile
+import textwrap
 import unittest
 from pathlib import Path
 
@@ -93,6 +96,79 @@ class SubmoduleCommandTest(unittest.TestCase):
         )
         self.assertEqual(result.returncode, 0, result.stderr + result.stdout)
         self.assertIn("fail 0", result.stdout)
+
+    def test_source_pr_checks_gate_runs_with_restricted_token(self) -> None:
+        """Exercise the real bash gate with a stubbed GitHub CLI."""
+        source = (ROOT / "workflow-templates/command-submodule-pr.yml").read_text()
+        step = source.split("      - name: Require successful source PR checks\n", 1)[1]
+        script = textwrap.dedent(
+            step.split("        run: |\n", 1)[1].split("\n      - name:", 1)[0]
+        )
+        with tempfile.TemporaryDirectory() as temp_dir:
+            directory = Path(temp_dir)
+            gh = directory / "gh"
+            gh.write_text(
+                "#!/usr/bin/env python3\n"
+                "import os, pathlib, sys\n"
+                "if sys.argv[1] == 'api':\n"
+                "    counter = pathlib.Path(os.environ['MOCK_COUNTER'])\n"
+                "    n = int(counter.read_text()) + 1\n"
+                "    counter.write_text(str(n))\n"
+                "    if os.environ.get('MOCK_CHANGED') == 'first' or "
+                "(os.environ.get('MOCK_CHANGED') == 'last' and n > 1):\n"
+                "        print('b' * 40)\n"
+                "    else:\n"
+                "        print('a' * 40)\n"
+                "elif sys.argv[1:3] == ['pr', 'checks']:\n"
+                "    sys.exit(int(os.environ['MOCK_CHECK_EXIT']))\n"
+                "else:\n"
+                "    sys.exit(99)\n"
+            )
+            gh.chmod(0o755)
+            cases = [
+                ("success", "0", "", True),
+                ("failed", "1", "", False),
+                ("pending", "8", "", False),
+                ("no-checks", "1", "", False),
+                ("changed-before", "0", "first", False),
+                ("changed-after", "0", "last", False),
+            ]
+            for name, check_exit, changed, expected_success in cases:
+                with self.subTest(name=name):
+                    counter = directory / "counter"
+                    counter.write_text("0")
+                    env = os.environ.copy()
+                    env.update({
+                        "PATH": f"{directory}:{env.get('PATH', '')}",
+                        "GITHUB_REPOSITORY": "LibreSign/3rdparty",
+                        "PR_NUMBER": "124",
+                        "HEAD_SHA": "a" * 40,
+                        "GH_TOKEN": "mock-read-only-token",
+                        "MOCK_CHECK_EXIT": check_exit,
+                        "MOCK_CHANGED": changed,
+                        "MOCK_COUNTER": str(counter),
+                    })
+                    result = subprocess.run(
+                        ["bash", "-c", script], capture_output=True, text=True,
+                        env=env, check=False
+                    )
+                    self.assertEqual(
+                        result.returncode == 0, expected_success,
+                        f"{name}: {result.stdout} {result.stderr}"
+                    )
+
+    def test_shared_destination_pr_options_are_configurable(self) -> None:
+        source = (ROOT / "workflow-templates/command-submodule-pr.yml").read_text()
+        self.assertIn("checks: read", source)
+        self.assertIn("statuses: read", source)
+        self.assertIn("TARGET_PR_LABELS: " + "$" + "{{ vars.SUBMODULE_PR_LABELS }}", source)
+        self.assertIn("TARGET_PR_REVIEWER: " + "$" + "{{ vars.SUBMODULE_PR_REVIEWER }}", source)
+        self.assertIn("COMMAND_ACTOR: " + "$" + "{{ github.event.comment.user.login }}", source)
+        self.assertIn('create_args+=(--label "$label")', source)
+        self.assertIn('create_args+=(--reviewer "$COMMAND_ACTOR")', source)
+        self.assertIn('gh pr create "${create_args[@]}"', source)
+        self.assertNotIn("--label dependencies --label '3. to review'", source)
+        self.assertIn('GH_TOKEN="$SOURCE_GITHUB_TOKEN" gh api', source)
 
 
 if __name__ == "__main__":
