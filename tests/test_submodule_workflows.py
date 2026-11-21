@@ -100,29 +100,29 @@ class SubmoduleCommandTest(unittest.TestCase):
     def test_source_pr_checks_gate_runs_with_restricted_token(self) -> None:
         """Exercise the real bash gate with a stubbed GitHub CLI."""
         source = (ROOT / "workflow-templates/command-submodule-pr.yml").read_text()
-        step = source.split("      - name: Require successful source PR checks\\n", 1)[1]
+        step = source.split("      - name: Require successful source PR checks\n", 1)[1]
         script = textwrap.dedent(
-            step.split("        run: |\\n", 1)[1].split("\\n      - name:", 1)[0]
+            step.split("        run: |\n", 1)[1].split("\n      - name:", 1)[0]
         )
         with tempfile.TemporaryDirectory() as temp_dir:
             directory = Path(temp_dir)
             gh = directory / "gh"
             gh.write_text(
-                "#!/usr/bin/env python3\\n"
-                "import os, pathlib, sys\\n"
-                "if sys.argv[1] == 'api':\\n"
-                "    counter = pathlib.Path(os.environ['MOCK_COUNTER'])\\n"
-                "    n = int(counter.read_text()) + 1\\n"
-                "    counter.write_text(str(n))\\n"
+                "#!/usr/bin/env python3\n"
+                "import os, pathlib, sys\n"
+                "if sys.argv[1] == 'api':\n"
+                "    counter = pathlib.Path(os.environ['MOCK_COUNTER'])\n"
+                "    n = int(counter.read_text()) + 1\n"
+                "    counter.write_text(str(n))\n"
                 "    if os.environ.get('MOCK_CHANGED') == 'first' or "
-                "(os.environ.get('MOCK_CHANGED') == 'last' and n > 1):\\n"
-                "        print('b' * 40)\\n"
-                "    else:\\n"
-                "        print('a' * 40)\\n"
-                "elif sys.argv[1:3] == ['pr', 'checks']:\\n"
-                "    sys.exit(int(os.environ['MOCK_CHECK_EXIT']))\\n"
-                "else:\\n"
-                "    sys.exit(99)\\n"
+                "(os.environ.get('MOCK_CHANGED') == 'last' and n > 1):\n"
+                "        print('b' * 40)\n"
+                "    else:\n"
+                "        print('a' * 40)\n"
+                "elif sys.argv[1:3] == ['pr', 'checks']:\n"
+                "    sys.exit(int(os.environ['MOCK_CHECK_EXIT']))\n"
+                "else:\n"
+                "    sys.exit(99)\n"
             )
             gh.chmod(0o755)
             cases = [
