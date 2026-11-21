@@ -120,3 +120,14 @@ For LibreCode-managed workflow synchronization the same App must be installed on
 4. Delete the old key.
 
 Do not delete the old key before validating the replacement.
+
+
+## Signed scoped-vendor regeneration
+
+The optional `commit-generated-vendor` composite Action commits only changed
+`composer/**` files from the checked-out source PR, using a scoped GitHub App
+installation token. It verifies the returned GitHub signature and author
+identity against the App bot's DCO trailer before a non-force branch update.
+It rejects unexpected paths, stale PR heads, unsigned commits, and signer
+mismatches; it does not overwrite unrelated changes.
+The consumer must pin the Action to a reviewed, immutable catalog commit SHA.
