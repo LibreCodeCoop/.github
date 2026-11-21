@@ -47,7 +47,7 @@ jobs:
           persist-credentials: false
 
       - name: Plan repository governance (read only)
-        uses: LibreCodeCoop/github-governance@1f0e4a80cf44cd6762eb3d0144200fd51fc2b07d # public planning support; pin immutable commit
+        uses: LibreCodeCoop/github-governance@af0a104252b3d78fa1af1fca20b069c77587e6f4 # public planning support; pin immutable commit
         with:
           token: ${{ github.token }}
           organization: ${{ inputs.repository == '' && 'LibreCodeCoop' || '' }}
@@ -86,7 +86,7 @@ jobs:
           # The privileged GitHub App must not require Contents permission.
 
       - name: Apply repository governance
-        uses: LibreCodeCoop/github-governance@1f0e4a80cf44cd6762eb3d0144200fd51fc2b07d # public planning support; pin immutable commit
+        uses: LibreCodeCoop/github-governance@af0a104252b3d78fa1af1fca20b069c77587e6f4 # public planning support; pin immutable commit
         with:
           token: ${{ steps.app-token.outputs.token }}
           contents-token: ${{ github.token }}
