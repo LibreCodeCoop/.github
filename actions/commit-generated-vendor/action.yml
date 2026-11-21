@@ -18,10 +18,18 @@ inputs:
   signer-email:
     description: Authenticated GitHub App bot email
     required: true
+outputs:
+  commit_sha:
+    description: SHA of the published verified commit, empty on no-op
+    value: ${{ steps.commit.outputs.commit_sha }}
+  changed:
+    description: Whether scoped vendor files were updated
+    value: ${{ steps.commit.outputs.changed }}
 runs:
   using: composite
   steps:
     - name: Commit generated scoped vendor files
+      id: commit
       uses: actions/github-script@3a2844b7e9c422d3c10d287c895573f7108da1b3 # v9.0.0
       env:
         SOURCE_HEAD: ${{ inputs.source-head }}

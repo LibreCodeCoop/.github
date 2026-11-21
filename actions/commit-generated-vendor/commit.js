@@ -58,6 +58,8 @@ async function commitGeneratedVendor({
   const filenames = changed(root)
   validatePaths(filenames)
   if (filenames.length === 0) {
+    core.setOutput?.('changed', 'false')
+    core.setOutput?.('commit_sha', '')
     core.notice('Scoped vendor files already match the dependency lockfile')
     return
   }
@@ -94,17 +96,25 @@ async function commitGeneratedVendor({
   const {data: updatedTree} = await github.rest.git.createTree({
     owner, repo, base_tree: base.tree.sha, tree,
   })
+  const message = 'chore(autoloader): Regenerate scoped dependencies\n\n' +
+    'Signed-off-by: ' + name + ' <' + email + '>'
   const {data: commit} = await github.rest.git.createCommit({
-    owner, repo, tree: updatedTree.sha, parents: [expected],
-    message: 'chore(autoloader): Regenerate scoped dependencies\n\n' +
-      'Signed-off-by: ' + name + ' <' + email + '>',
+    owner, repo, tree: updatedTree.sha, parents: [expected], message,
   })
-  if (commit.verification?.verified !== true ||
-      commit.author?.name !== name || commit.author?.email !== email ||
-      commit.committer?.email !== email) {
-    throw new Error('GitHub App did not verify the signed vendor commit')
+  // A GitHub App token may produce a platform committer distinct from the bot
+  // author. Require a verified signature and an author matching the DCO trailer.
+  const verification = commit.verification || {}
+  const authorMatches = commit.author?.name === name && commit.author?.email === email
+  core.info?.('Generated commit verification: verified=' +
+    (verification.verified === true) + ', reason=' + (verification.reason || 'unknown') +
+    ', authorMatchesDCO=' + authorMatches)
+  if (verification.verified !== true) {
+    throw new Error('GitHub did not verify the signed vendor commit (reason: ' +
+      (verification.reason || 'unknown') + '). The branch was not updated.')
   }
-
+  if (!authorMatches) {
+    throw new Error('Verified vendor commit author does not match the expected DCO signer. The branch was not updated.')
+  }
   const {data: current} = await github.rest.pulls.get({
     owner, repo, pull_number: context.issue.number,
   })
@@ -114,6 +124,8 @@ async function commitGeneratedVendor({
   await github.rest.git.updateRef({
     owner, repo, ref: 'heads/' + branch, sha: commit.sha, force: false,
   })
+  core.setOutput?.('changed', 'true')
+  core.setOutput?.('commit_sha', commit.sha)
   core.notice('Pushed verified scoped vendor commit: ' + commit.sha)
 }
 
