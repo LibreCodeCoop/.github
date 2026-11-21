@@ -47,7 +47,7 @@ jobs:
           echo "email=${app_id}+${APP_SLUG}[bot]@users.noreply.github.com" >> "$GITHUB_OUTPUT"
 
       - name: Update merged submodule reference
-        uses: LibreCodeCoop/.github/actions/update-submodule@2a75cff7318334499053ced8b72d04bc0f795baf # source pinned
+        uses: LibreCodeCoop/.github/actions/update-submodule@a66cc351b9b5e8c189941b57f01d1b8b1be911d2 # source pinned
         with:
           token: ${{ steps.workflow-app-token.outputs.token }}
           source-repository: ${{ vars.SUBMODULE_SOURCE_REPOSITORY }}
