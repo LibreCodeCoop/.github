@@ -178,6 +178,52 @@ preserve any stricter requirements and be reviewed independently; the common
 plan does not delete classic branch protection or configure product-specific
 CI checks.
 
+## Merge commit DCO and verified signatures
+
+A green DCO check on a pull request validates the proposed commits; it does
+**not** validate a new merge commit that GitHub creates after approval.
+Likewise, a GitHub `Verified` badge means the merge commit is signed but
+does not establish that its author signed off under the DCO.
+
+Before merging a reviewed PR:
+
+1. Confirm the PR's requested reviews, required checks and head SHA are
+   current. Use a merge strategy that preserves individual signed commits;
+   do not squash automatically or rewrite published PR history.
+2. If GitHub will create a **merge commit**, customize the merge commit's
+   description **before clicking Merge** to include a
+   `Signed-off-by: Name <email@example.org>` trailer. Use the actual name and
+   author email that the GitHub merge operation will assign to this actor
+   and repository; do not copy the local `git config` value or an agent's
+   signing email without checking. In particular, the GitHub web merge author
+   can differ from the bot or maintainer identity used in earlier PR commits.
+3. After merging, inspect the returned **merge SHA**, not only the PR head:
+
+   ```sh
+   gh api repos/OWNER/REPO/commits/MERGE_SHA \
+     --jq '{author: .commit.author, verified: .commit.verification.verified, reason: .commit.verification.reason, message: .commit.message}'
+   ```
+
+   Require `verified: true`, `reason: valid`, and a `Signed-off-by`
+   trailer with name and email matching the commit **author**. Verify the
+   resulting tree/branch head where the PR changes a submodule gitlink.
+4. If the result is unsigned, missing DCO or attributed to an unexpected
+   author, treat the merge procedure as defective and stop repeating it.
+   Do not amend, force-push or rewrite protected history as a repair.
+   Investigate the GitHub account/merge method and update the procedure
+   before another merge.
+
+For commits prepared by agents, use the required **Git Signing MCP** with a
+confirmed DCO identity. The GitHub UI/API merge is a separate operation and
+must be verified independently: it does not inherit the agent's DCO or
+cryptographic identity automatically.
+
+This is a **maintainer procedure**, not a claim that GitHub's PR-head DCO
+check enforces a future merge commit. To enforce the trailer automatically
+on protected-branch writes would require a separately reviewed and safely
+rolled-out repository ruleset; do not silently change organization
+governance to bypass that approval.
+
 ## Bypass and auto-merge
 
 The proposed CI gate allows organization administrators to bypass the
