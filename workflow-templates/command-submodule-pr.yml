@@ -8,6 +8,8 @@ on:
 
 permissions:
   contents: read
+  pull-requests: read
+  issues: write
 
 jobs:
   init:
@@ -52,7 +54,7 @@ jobs:
       - name: Add reaction on start
         uses: peter-evans/create-or-update-comment@e8674b075228eee787fea43ef493e45ece1004c9 # v5.0.0
         with:
-          token: ${{ secrets.COMMAND_BOT_PAT }} # zizmor: ignore[secrets-outside-env]
+          token: ${{ github.token }}
           repository: ${{ github.event.repository.full_name }}
           comment-id: ${{ github.event.comment.id }}
           reactions: '+1'
@@ -65,7 +67,7 @@ jobs:
         uses: peter-evans/create-or-update-comment@e8674b075228eee787fea43ef493e45ece1004c9 # v5.0.0
         if: failure()
         with:
-          token: ${{ secrets.COMMAND_BOT_PAT }} # zizmor: ignore[secrets-outside-env]
+          token: ${{ github.token }}
           repository: ${{ github.event.repository.full_name }}
           comment-id: ${{ github.event.comment.id }}
           reactions: '-1'
@@ -85,11 +87,14 @@ jobs:
 
     steps:
       - name: Validate target configuration
+        id: target-scope
         shell: bash
         run: |
           set -euo pipefail
           [[ "$TARGET_REPOSITORY" =~ ^[[:alnum:]_.-]+/[[:alnum:]_.-]+$ ]] || exit 1
           [[ "$SUBMODULE_PATH" =~ ^[[:alnum:]_.-]+(/[[:alnum:]_.-]+)*$ ]] || exit 1
+          echo "owner=${TARGET_REPOSITORY%%/*}" >> "$GITHUB_OUTPUT"
+          echo "repository=${TARGET_REPOSITORY#*/}" >> "$GITHUB_OUTPUT"
 
       - name: Checkout 3rdparty ${{ needs.init.outputs.head_ref }}
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
@@ -145,9 +150,22 @@ jobs:
           git checkout -b "$HEAD_REF"
           git update-index --cacheinfo "160000,$HEAD_SHA,$SUBMODULE_PATH"
           git commit --signoff -m "$(sed -E 's/^\[stable[0-9.]*\] *//' <<< "$PR_TITLE")"
+      - name: Create scoped target GitHub App token
+        id: target-app-token
+        uses: actions/create-github-app-token@64ab729a6294000f5aa4a4bc0b73d1f32bc45510 # v3.3.0
+        with:
+          client-id: ${{ vars.WORKFLOW_SYNC_APP_CLIENT_ID }}
+          private-key: ${{ secrets.WORKFLOW_SYNC_APP_PRIVATE_KEY }}
+          owner: ${{ steps.target-scope.outputs.owner }}
+          repositories: ${{ steps.target-scope.outputs.repository }}
+          permission-contents: write
+          permission-pull-requests: write
+          permission-workflows: write
+
       - name: Push branch and create target pull request
         env:
-          GH_TOKEN: ${{ secrets.COMMAND_BOT_PAT }} # zizmor: ignore[secrets-outside-env]
+          GH_TOKEN: ${{ steps.target-app-token.outputs.token }}
+          SOURCE_GITHUB_TOKEN: ${{ github.token }}
         run: |
           set -euo pipefail
           gh auth setup-git
@@ -155,13 +173,13 @@ jobs:
           url=$(gh pr create --repo "$TARGET_REPOSITORY" --base "$BASE_REF" --head "$HEAD_REF" \
             --title "$PR_TITLE" \
             --body-file "$RUNNER_TEMP/pr-body.md")
-          gh pr comment "$PR_NUMBER" --repo '${{ github.repository }}' --body "- Parent PR: $url"
+          GH_TOKEN="$SOURCE_GITHUB_TOKEN" gh pr comment "$PR_NUMBER" --repo '${{ github.repository }}' --body "- Parent PR: $url"
 
       - name: Add reaction on failure
         uses: peter-evans/create-or-update-comment@e8674b075228eee787fea43ef493e45ece1004c9 # v5.0.0
         if: failure()
         with:
-          token: ${{ secrets.COMMAND_BOT_PAT }} # zizmor: ignore[secrets-outside-env]
+          token: ${{ github.token }}
           repository: '${{ github.event.repository.full_name }}'
           comment-id: '${{ github.event.comment.id }}'
           reactions: '-1'

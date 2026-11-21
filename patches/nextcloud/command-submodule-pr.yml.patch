@@ -8,9 +8,17 @@
  
  on:
    issue_comment: # zizmor: ignore[dangerous-triggers]
-@@ -13,8 +13,8 @@
+@@ -8,13 +8,15 @@
+ 
+ permissions:
+   contents: read
++  pull-requests: read
++  issues: write
+ 
+ jobs:
    init:
-     runs-on: ubuntu-latest-low
++    runs-on: ubuntu-latest
+-    runs-on: ubuntu-latest-low
  
 +    # A consumer patch or repository variable configures the command.
 +    if: github.event.issue.pull_request != '' && vars.SUBMODULE_PR_COMMAND != '' && github.event.comment.body == vars.SUBMODULE_PR_COMMAND
@@ -19,7 +27,28 @@
  
      outputs:
        head_ref: ${{ steps.comment-branch.outputs.head_ref }}
-@@ -75,19 +75,26 @@
+@@ -52,7 +54,7 @@
+       - name: Add reaction on start
+         uses: peter-evans/create-or-update-comment@e8674b075228eee787fea43ef493e45ece1004c9 # v5.0.0
+         with:
++          token: ${{ github.token }}
+-          token: ${{ secrets.COMMAND_BOT_PAT }} # zizmor: ignore[secrets-outside-env]
+           repository: ${{ github.event.repository.full_name }}
+           comment-id: ${{ github.event.comment.id }}
+           reactions: '+1'
+@@ -65,29 +67,39 @@
+         uses: peter-evans/create-or-update-comment@e8674b075228eee787fea43ef493e45ece1004c9 # v5.0.0
+         if: failure()
+         with:
++          token: ${{ github.token }}
+-          token: ${{ secrets.COMMAND_BOT_PAT }} # zizmor: ignore[secrets-outside-env]
+           repository: ${{ github.event.repository.full_name }}
+           comment-id: ${{ github.event.comment.id }}
+           reactions: '-1'
+ 
+   process:
++    runs-on: ubuntu-latest
+-    runs-on: ubuntu-latest-low
      needs: init
  
      env:
@@ -35,11 +64,14 @@
  
      steps:
 +      - name: Validate target configuration
++        id: target-scope
 +        shell: bash
 +        run: |
 +          set -euo pipefail
 +          [[ "$TARGET_REPOSITORY" =~ ^[[:alnum:]_.-]+/[[:alnum:]_.-]+$ ]] || exit 1
 +          [[ "$SUBMODULE_PATH" =~ ^[[:alnum:]_.-]+(/[[:alnum:]_.-]+)*$ ]] || exit 1
++          echo "owner=${TARGET_REPOSITORY%%/*}" >> "$GITHUB_OUTPUT"
++          echo "repository=${TARGET_REPOSITORY#*/}" >> "$GITHUB_OUTPUT"
 +
        - name: Checkout 3rdparty ${{ needs.init.outputs.head_ref }}
          uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
@@ -49,7 +81,7 @@
            persist-credentials: false
            fetch-depth: 0
            ref: ${{ needs.init.outputs.head_sha }}
-@@ -99,57 +106,56 @@
+@@ -99,63 +111,75 @@
            coverage: none
  
        - name: Generate composer diff
@@ -109,11 +141,23 @@
 +          git update-index --cacheinfo "160000,$HEAD_SHA,$SUBMODULE_PATH"
 -          git update-index --cacheinfo "160000,$HEAD_SHA,3rdparty"
            git commit --signoff -m "$(sed -E 's/^\[stable[0-9.]*\] *//' <<< "$PR_TITLE")"
++      - name: Create scoped target GitHub App token
++        id: target-app-token
++        uses: actions/create-github-app-token@64ab729a6294000f5aa4a4bc0b73d1f32bc45510 # v3.3.0
++        with:
++          client-id: ${{ vars.WORKFLOW_SYNC_APP_CLIENT_ID }}
++          private-key: ${{ secrets.WORKFLOW_SYNC_APP_PRIVATE_KEY }}
++          owner: ${{ steps.target-scope.outputs.owner }}
++          repositories: ${{ steps.target-scope.outputs.repository }}
++          permission-contents: write
++          permission-pull-requests: write
++          permission-workflows: write
+-          git push origin "$HEAD_REF"
+ 
 +      - name: Push branch and create target pull request
 +        env:
-+          GH_TOKEN: ${{ secrets.COMMAND_BOT_PAT }} # zizmor: ignore[secrets-outside-env]
--          git push origin "$HEAD_REF"
--
++          GH_TOKEN: ${{ steps.target-app-token.outputs.token }}
++          SOURCE_GITHUB_TOKEN: ${{ github.token }}
 -      - name: Create server pull request
          run: |
 +          set -euo pipefail
@@ -125,8 +169,15 @@
 -            --label dependencies --label '3. to review' \
 -            --reviewer "$REVIEWER" \
              --body-file "$RUNNER_TEMP/pr-body.md")
-+          gh pr comment "$PR_NUMBER" --repo '${{ github.repository }}' --body "- Parent PR: $url"
++          GH_TOKEN="$SOURCE_GITHUB_TOKEN" gh pr comment "$PR_NUMBER" --repo '${{ github.repository }}' --body "- Parent PR: $url"
 -          gh pr comment "$PR_NUMBER" --repo '${{ github.repository }}' --body "- Server PR: $url"
  
        - name: Add reaction on failure
          uses: peter-evans/create-or-update-comment@e8674b075228eee787fea43ef493e45ece1004c9 # v5.0.0
+         if: failure()
+         with:
++          token: ${{ github.token }}
+-          token: ${{ secrets.COMMAND_BOT_PAT }} # zizmor: ignore[secrets-outside-env]
+           repository: '${{ github.event.repository.full_name }}'
+           comment-id: '${{ github.event.comment.id }}'
+           reactions: '-1'
