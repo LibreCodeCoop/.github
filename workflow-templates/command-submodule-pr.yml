@@ -160,18 +160,13 @@ jobs:
             exit 1
           fi
 
-      - name: Setup git
+      - name: Stage submodule reference
         working-directory: parent
+        shell: bash
         run: |
-          git config --local user.email '41898282+github-actions[bot]@users.noreply.github.com'
-          git config --local user.name 'github-actions[bot]'
-
-      - name: Commit submodule reference
-        working-directory: parent
-        run: |
-          git checkout -b "$HEAD_REF"
+          set -euo pipefail
           git update-index --cacheinfo "160000,$HEAD_SHA,$SUBMODULE_PATH"
-          git commit --signoff -m "$(sed -E 's/^\[stable[0-9.]*\] *//' <<< "$PR_TITLE")"
+
       - name: Create scoped target GitHub App token
         id: target-app-token
         uses: actions/create-github-app-token@64ab729a6294000f5aa4a4bc0b73d1f32bc45510 # v3.3.0
@@ -184,35 +179,73 @@ jobs:
           permission-pull-requests: write
           permission-workflows: write
 
-      - name: Push branch and create target pull request
+      - name: Resolve GitHub App signing bot
+        id: signing-bot
+        shell: bash
         env:
-          GH_TOKEN: ${{ steps.target-app-token.outputs.token }}
-          SOURCE_GITHUB_TOKEN: ${{ github.token }}
+          GH_TOKEN: ${{ github.token }}
+          APP_SLUG: ${{ steps.target-app-token.outputs.app-slug }}
         run: |
           set -euo pipefail
-          gh auth setup-git
-          # Never publish a pointer after the source PR changes.
-          source_head="$(GH_TOKEN="$SOURCE_GITHUB_TOKEN" gh api "repos/$GITHUB_REPOSITORY/pulls/$PR_NUMBER" --jq '.head.sha')"
+          [[ "$APP_SLUG" =~ ^[a-zA-Z0-9-]+$ ]] || exit 1
+          bot_user_id="$(gh api "users/${APP_SLUG}[bot]" --jq '.id')"
+          [[ "$bot_user_id" =~ ^[0-9]+$ ]] || exit 1
+          echo "name=${APP_SLUG}[bot]" >> "$GITHUB_OUTPUT"
+          echo "email=${bot_user_id}+${APP_SLUG}[bot]@users.noreply.github.com" >> "$GITHUB_OUTPUT"
+
+      - name: Configure DCO commit identity
+        working-directory: parent
+        shell: bash
+        env:
+          BOT_NAME: ${{ steps.signing-bot.outputs.name }}
+          BOT_EMAIL: ${{ steps.signing-bot.outputs.email }}
+        run: |
+          git config --local user.name "$BOT_NAME"
+          git config --local user.email "$BOT_EMAIL"
+
+      - name: Revalidate source PR before publishing
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          source_head="$(gh api "repos/$GITHUB_REPOSITORY/pulls/$PR_NUMBER" --jq '.head.sha')"
           if [[ "$source_head" != "$HEAD_SHA" ]]; then
             echo "::error::Source PR head changed before publication"
             exit 1
           fi
-          create_args=(--repo "$TARGET_REPOSITORY" --base "$BASE_REF" --head "$HEAD_REF" \
-            --title "$PR_TITLE" --body-file "$RUNNER_TEMP/pr-body.md")
-          IFS=',' read -r -a labels <<< "$TARGET_PR_LABELS"
-          for label in "${labels[@]}"; do
-            label="${label#"${label%%[![:space:]]*}"}"
-            label="${label%"${label##*[![:space:]]}"}"
-            [[ -z "$label" ]] || create_args+=(--label "$label")
-          done
-          if [[ "$TARGET_PR_REVIEWER" == "commenter" ]]; then
-            create_args+=(--reviewer "$COMMAND_ACTOR")
-          elif [[ -n "$TARGET_PR_REVIEWER" ]]; then
-            create_args+=(--reviewer "$TARGET_PR_REVIEWER")
-          fi
-          git -C parent push origin "$HEAD_REF"
-          url=$(gh pr create "${create_args[@]}")
-          GH_TOKEN="$SOURCE_GITHUB_TOKEN" gh pr comment "$PR_NUMBER" --repo '${{ github.repository }}' --body "- Parent PR: $url"
+
+      - name: Create signed target pull request
+        id: target-pr
+        uses: peter-evans/create-pull-request@5f6978faf089d4d20b00c7766989d076bb2fc7f1 # v8.1.1
+        with:
+          token: ${{ steps.target-app-token.outputs.token }}
+          author: ${{ steps.signing-bot.outputs.name }} <${{ steps.signing-bot.outputs.email }}>
+          committer: ${{ steps.signing-bot.outputs.name }} <${{ steps.signing-bot.outputs.email }}>
+          path: parent
+          base: ${{ env.BASE_REF }}
+          branch: ${{ env.HEAD_REF }}
+          title: ${{ env.PR_TITLE }}
+          body-path: ${{ runner.temp }}/pr-body.md
+          labels: ${{ env.TARGET_PR_LABELS }}
+          reviewers: ${{ env.TARGET_PR_REVIEWER == 'commenter' && env.COMMAND_ACTOR || env.TARGET_PR_REVIEWER }}
+          signoff: true
+          sign-commits: true
+
+      - name: Verify signed destination and report source
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TARGET_URL: ${{ steps.target-pr.outputs.pull-request-url }}
+          VERIFIED: ${{ steps.target-pr.outputs.pull-request-commits-verified }}
+        run: |
+          set -euo pipefail
+          [[ "$VERIFIED" == 'true' ]] || {
+            echo "::error::Destination pull request commits were not verified"
+            exit 1
+          }
+          [[ -n "$TARGET_URL" ]] || exit 1
+          gh pr comment "$PR_NUMBER" --repo "$GITHUB_REPOSITORY" --body "- Parent PR: $TARGET_URL"
 
       - name: Add reaction on failure
         uses: peter-evans/create-or-update-comment@e8674b075228eee787fea43ef493e45ece1004c9 # v5.0.0

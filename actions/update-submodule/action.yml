@@ -14,6 +14,12 @@ inputs:
   submodule-path:
     description: Gitlink path within the parent repository
     required: true
+  signer-name:
+    description: GitHub App bot identity used for DCO and commit verification
+    required: true
+  signer-email:
+    description: GitHub App bot noreply email used for DCO and verification
+    required: true
 
 runs:
   using: composite
@@ -23,6 +29,8 @@ runs:
       env:
         SUBMODULE_PATH: ${{ inputs.submodule-path }}
         SOURCE_REPOSITORY: ${{ inputs.source-repository }}
+        SUBMODULE_SIGNER_NAME: ${{ inputs.signer-name }}
+        SUBMODULE_SIGNER_EMAIL: ${{ inputs.signer-email }}
       with:
         github-token: ${{ inputs.token }}
         script: |

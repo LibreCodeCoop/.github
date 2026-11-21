@@ -38,12 +38,12 @@ class SubmoduleCommandTest(unittest.TestCase):
         source = (ROOT / "workflow-templates/command-submodule-pr.yml").read_text()
         process = source.split("  process:\n", 1)[1]
         before_publish = process.split(
-            "      - name: Push branch and create target pull request", 1
+            "      - name: Create signed target pull request", 1
         )[0]
         self.assertNotIn("secrets.COMMAND_BOT_PAT", before_publish)
         self.assertIn("composer diff --with-links", before_publish)
         self.assertIn("persist-credentials: false", before_publish)
-        self.assertIn("gh auth setup-git", process)
+        self.assertIn("sign-commits: true", process)
 
     def test_update_is_composite_action_without_pr_checkout(self) -> None:
         workflow = (ROOT / "workflow-templates/command-update-submodule.yml").read_text()
@@ -58,9 +58,12 @@ class SubmoduleCommandTest(unittest.TestCase):
         self.assertIn("uses: actions/github-script@", action)
         self.assertIn("source-repository:", action)
         self.assertIn("submodule-path:", action)
+        self.assertIn("signer-name:", action)
+        self.assertIn("signer-email:", action)
+        self.assertIn("SUBMODULE_SIGNER_NAME:", action)
         impl = (ROOT / "actions/update-submodule/update.js").read_text()
         for contract in ("force: false", "Signed-off-by:", "createTree",
-                         "createCommit", "updateRef"):
+                         "createCommit", "updateRef", "verification?.verified"):
             self.assertIn(contract, impl)
 
     def test_commands_use_scoped_temporary_tokens(self) -> None:
@@ -73,9 +76,16 @@ class SubmoduleCommandTest(unittest.TestCase):
         self.assertIn("steps.target-scope.outputs.repository", source)
         self.assertIn("permission-contents: write", source)
         self.assertIn("permission-pull-requests: write", source)
-        self.assertIn("GH_TOKEN: " + "$" + "{{ steps.target-app-token.outputs.token }}", source)
-        self.assertIn('GH_TOKEN="$SOURCE_GITHUB_TOKEN" gh pr comment', source)
-        self.assertLess(source.index("- name: Commit submodule reference"),
+        self.assertIn("token: " + "$" + "{{ steps.target-app-token.outputs.token }}", source)
+        self.assertIn("sign-commits: true", source)
+        self.assertIn("signoff: true", source)
+        self.assertIn("author: " + "$" + "{{ steps.signing-bot.outputs.name }}", source)
+        self.assertIn("committer: " + "$" + "{{ steps.signing-bot.outputs.name }}", source)
+        self.assertIn("pull-request-commits-verified", source)
+        self.assertIn("steps.signing-bot.outputs.name", source)
+        self.assertIn("steps.target-app-token.outputs.app-slug", source)
+        self.assertNotIn("git commit --signoff", source)
+        self.assertLess(source.index("- name: Stage submodule reference"),
                         source.index("- name: Create scoped target GitHub App token"))
 
     def test_update_uses_temporary_app_token(self) -> None:
@@ -85,6 +95,28 @@ class SubmoduleCommandTest(unittest.TestCase):
         self.assertIn("permission-contents: write", source)
         self.assertIn("permission-pull-requests: write", source)
         self.assertIn("token: " + "$" + "{{ steps.workflow-app-token.outputs.token }}", source)
+        self.assertIn("steps.workflow-app-token.outputs.app-slug", source)
+        self.assertIn("steps.signer.outputs.name", source)
+        self.assertIn("steps.signer.outputs.email", source)
+
+    def test_workflow_sync_uses_verified_bot_commits(self) -> None:
+        workflow = (ROOT / "workflow-templates/sync-workflow-templates.yml").read_text()
+        self.assertIn("sign-commits: true", workflow)
+        self.assertIn("signoff: true", workflow)
+        self.assertIn("committer: " + "$" + "{{ steps.sync-signer.outputs.name }}", workflow)
+        self.assertIn("author: " + "$" + "{{ steps.sync-signer.outputs.name }}", workflow)
+        self.assertIn("PAT authentication does not support verified GitHub bot commits", workflow)
+
+    def test_github_app_signer_uses_bot_account_id(self) -> None:
+        for filename in (
+            "command-submodule-pr.yml",
+            "command-update-submodule.yml",
+            "sync-workflow-templates.yml",
+        ):
+            with self.subTest(filename=filename):
+                source = (ROOT / "workflow-templates" / filename).read_text()
+                self.assertIn('gh api "users/${APP_SLUG}[bot]" --jq', source)
+                self.assertNotIn('gh api "apps/$APP_SLUG"', source)
 
     def test_generated_vendor_action_negative_and_positive_cases(self) -> None:
         if not shutil.which("node"):
@@ -179,11 +211,11 @@ class SubmoduleCommandTest(unittest.TestCase):
         self.assertIn("TARGET_PR_LABELS: " + "$" + "{{ vars.SUBMODULE_PR_LABELS }}", source)
         self.assertIn("TARGET_PR_REVIEWER: " + "$" + "{{ vars.SUBMODULE_PR_REVIEWER }}", source)
         self.assertIn("COMMAND_ACTOR: " + "$" + "{{ github.event.comment.user.login }}", source)
-        self.assertIn('create_args+=(--label "$label")', source)
-        self.assertIn('create_args+=(--reviewer "$COMMAND_ACTOR")', source)
-        self.assertIn('gh pr create "${create_args[@]}"', source)
+        self.assertIn("labels: " + "$" + "{{ env.TARGET_PR_LABELS }}", source)
+        self.assertIn("reviewers: " + "$" + "{{ env.TARGET_PR_REVIEWER == 'commenter' && env.COMMAND_ACTOR || env.TARGET_PR_REVIEWER }}", source)
+        self.assertIn("sign-commits: true", source)
         self.assertNotIn("--label dependencies --label '3. to review'", source)
-        self.assertIn('GH_TOKEN="$SOURCE_GITHUB_TOKEN" gh api', source)
+        self.assertIn("- name: Revalidate source PR before publishing", source)
 
 
 if __name__ == "__main__":

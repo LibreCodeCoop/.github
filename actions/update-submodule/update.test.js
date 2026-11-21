@@ -34,7 +34,12 @@ function fixture(change = () => {}, envChange = {}) {
       getCommit: wrap('git.getCommit', () => ({tree: {sha: sha('d')}})),
       getTree: wrap('git.getTree', () => ({tree: [gitlink]})),
       createTree: wrap('git.createTree', () => ({sha: sha('e')})),
-      createCommit: wrap('git.createCommit', () => ({sha: sha('f')})),
+      createCommit: wrap('git.createCommit', () => ({
+        sha: sha('f'),
+        verification: {verified: true},
+        author: {name: 'workflows[bot]', email: '123+workflows[bot]@users.noreply.github.com'},
+        committer: {name: 'workflows[bot]', email: '123+workflows[bot]@users.noreply.github.com'},
+      })),
       updateRef: wrap('git.updateRef', () => ({})),
     },
     issues: {createComment: wrap('issues.createComment', () => ({}))},
@@ -42,7 +47,13 @@ function fixture(change = () => {}, envChange = {}) {
   const notices = []
   const context = {repo: {owner: 'LibreSign', repo: 'libresign'}, issue: {number: 42}}
   const core = {notice: text => notices.push(text)}
-  const env = {SUBMODULE_PATH: '3rdparty', SOURCE_REPOSITORY: 'LibreSign/3rdparty', ...envChange}
+  const env = {
+    SUBMODULE_PATH: '3rdparty',
+    SOURCE_REPOSITORY: 'LibreSign/3rdparty',
+    SUBMODULE_SIGNER_NAME: 'workflows[bot]',
+    SUBMODULE_SIGNER_EMAIL: '123+workflows[bot]@users.noreply.github.com',
+    ...envChange,
+  }
   return {github, context, core, env, calls, notices}
 }
 
@@ -54,7 +65,9 @@ test('updates only the gitlink at the exact merged SHA, with DCO and no force pu
   assert.equal(tree.base_tree, sha('d'))
   const commit = f.calls.find(x => x.name === 'git.createCommit').args
   assert.deepEqual(commit.parents, [sha('a')])
-  assert.match(commit.message, /Signed-off-by: github-actions\[bot\]/)
+  assert.match(commit.message, /Signed-off-by: workflows\[bot\]/)
+  assert.equal('author' in commit, false)
+  assert.equal('committer' in commit, false)
   const pushed = f.calls.find(x => x.name === 'git.updateRef').args
   assert.equal(pushed.force, false)
   assert.equal(pushed.ref, 'heads/deps/upgrade')
@@ -100,4 +113,35 @@ test('concurrent ref movement rejects without reporting success', async () => {
   }
   await assert.rejects(update(f), /Reference changed/)
   assert.equal(f.calls.some(x => x.name === 'issues.createComment'), false)
+})
+
+test('rejects missing signer metadata before writing to the branch', async () => {
+  const f = fixture(() => {}, {SUBMODULE_SIGNER_NAME: ''})
+  await assert.rejects(update(f), /signing identity/)
+  assert.equal(f.calls.some(x => x.name === 'git.createCommit'), false)
+  assert.equal(f.calls.some(x => x.name === 'git.updateRef'), false)
+})
+
+test('rejects an unverified GitHub App commit without updating the ref', async () => {
+  const f = fixture()
+  f.github.rest.git.createCommit = async () => ({data: {
+    sha: sha('f'),
+    verification: {verified: false},
+    author: {name: 'workflows[bot]', email: '123+workflows[bot]@users.noreply.github.com'},
+    committer: {email: '123+workflows[bot]@users.noreply.github.com'},
+  }})
+  await assert.rejects(update(f), /did not verify/)
+  assert.equal(f.calls.some(x => x.name === 'git.updateRef'), false)
+})
+
+test('rejects a signer identity mismatch even if signature is valid', async () => {
+  const f = fixture()
+  f.github.rest.git.createCommit = async () => ({data: {
+    sha: sha('f'),
+    verification: {verified: true},
+    author: {name: 'untrusted[bot]', email: 'untrusted@example.com'},
+    committer: {email: 'untrusted@example.com'},
+  }})
+  await assert.rejects(update(f), /did not verify/)
+  assert.equal(f.calls.some(x => x.name === 'git.updateRef'), false)
 })

@@ -79,7 +79,14 @@ Actions variables or a consumer-local `.github/workflows/<name>.yml.patch`:
 - `command-update-submodule.yml`: `SUBMODULE_UPDATE_COMMAND`,
   `SUBMODULE_SOURCE_REPOSITORY` and `SUBMODULE_PATH`.
 
-The creation command expects a Composer lockfile in the source PR. It checks
+Workflow synchronization also uses a verified bot signing identity for DCO;
+`github-app` and `github-token` authentication are supported, while PAT-based
+`token` mode fails closed because GitHub cannot verify bot signatures with a PAT.
+
+The creation command publishes its submodule gitlink using a GitHub App bot-signed
+commit with DCO, and rejects an unverified destination commit. The same bot
+identity is used for the commit author and sign-off. It expects a Composer lockfile
+in the source PR. It checks
 all source PR checks with read-only `checks` and `statuses` permissions and
 refuses failed, pending, absent or stale checks. It revalidates the source HEAD
 before pushing to the target. A failed target PR creation can leave a branch
