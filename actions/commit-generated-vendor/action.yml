@@ -1,0 +1,35 @@
+# SPDX-FileCopyrightText: 2026 LibreCode coop and contributors
+# SPDX-License-Identifier: AGPL-3.0-or-later
+name: Commit regenerated scoped vendor files
+description: Commits generated Composer files using the scoped GitHub App signature, DCO, and non-force updates
+inputs:
+  token:
+    description: Scoped GitHub App installation token
+    required: true
+  source-head:
+    description: Exact checked-out pull request SHA
+    required: true
+  head-ref:
+    description: Pull request branch to update
+    required: true
+  signer-name:
+    description: Authenticated GitHub App bot name
+    required: true
+  signer-email:
+    description: Authenticated GitHub App bot email
+    required: true
+runs:
+  using: composite
+  steps:
+    - name: Commit generated scoped vendor files
+      uses: actions/github-script@3a2844b7e9c422d3c10d287c895573f7108da1b3 # v9.0.0
+      env:
+        SOURCE_HEAD: ${{ inputs.source-head }}
+        HEAD_REF: ${{ inputs.head-ref }}
+        SIGNER_NAME: ${{ inputs.signer-name }}
+        SIGNER_EMAIL: ${{ inputs.signer-email }}
+      with:
+        github-token: ${{ inputs.token }}
+        script: |
+          const {commitGeneratedVendor} = require('${{ github.action_path }}/commit.js')
+          await commitGeneratedVendor({github, context, core, env: process.env})

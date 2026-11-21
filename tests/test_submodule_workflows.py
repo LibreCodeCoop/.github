@@ -86,6 +86,21 @@ class SubmoduleCommandTest(unittest.TestCase):
         self.assertIn("permission-pull-requests: write", source)
         self.assertIn("token: " + "$" + "{{ steps.workflow-app-token.outputs.token }}", source)
 
+    def test_generated_vendor_action_negative_and_positive_cases(self) -> None:
+        if not shutil.which("node"):
+            self.skipTest("Node.js unavailable")
+        action = (ROOT / "actions/commit-generated-vendor/action.yml").read_text()
+        self.assertIn("uses: actions/github-script@", action)
+        self.assertIn("source-head:", action)
+        self.assertIn("signer-name:", action)
+        script = ROOT / "actions/commit-generated-vendor/commit.test.js"
+        result = subprocess.run(
+            ["node", "--test", str(script)],
+            check=False, capture_output=True, text=True,
+        )
+        self.assertEqual(result.returncode, 0, result.stderr + result.stdout)
+        self.assertIn("fail 0", result.stdout)
+
     def test_update_action_negative_and_positive_cases(self) -> None:
         if not shutil.which("node"):
             self.skipTest("Node.js unavailable")
