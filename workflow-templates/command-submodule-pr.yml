@@ -220,6 +220,8 @@ jobs:
         uses: peter-evans/create-pull-request@5f6978faf089d4d20b00c7766989d076bb2fc7f1 # v8.1.1
         with:
           token: ${{ steps.target-app-token.outputs.token }}
+          author: ${{ steps.signing-bot.outputs.name }} <${{ steps.signing-bot.outputs.email }}>
+          committer: ${{ steps.signing-bot.outputs.name }} <${{ steps.signing-bot.outputs.email }}>
           path: parent
           base: ${{ env.BASE_REF }}
           branch: ${{ env.HEAD_REF }}

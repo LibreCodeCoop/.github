@@ -104,7 +104,7 @@
            persist-credentials: false
            fetch-depth: 0
            ref: ${{ needs.init.outputs.head_sha }}
-@@ -99,63 +133,123 @@
+@@ -99,63 +133,125 @@
            coverage: none
  
        - name: Generate composer diff
@@ -231,6 +231,8 @@
 +        uses: peter-evans/create-pull-request@5f6978faf089d4d20b00c7766989d076bb2fc7f1 # v8.1.1
 +        with:
 +          token: ${{ steps.target-app-token.outputs.token }}
++          author: ${{ steps.signing-bot.outputs.name }} <${{ steps.signing-bot.outputs.email }}>
++          committer: ${{ steps.signing-bot.outputs.name }} <${{ steps.signing-bot.outputs.email }}>
 +          path: parent
 +          base: ${{ env.BASE_REF }}
 +          branch: ${{ env.HEAD_REF }}

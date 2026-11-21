@@ -79,6 +79,8 @@ class SubmoduleCommandTest(unittest.TestCase):
         self.assertIn("token: " + "$" + "{{ steps.target-app-token.outputs.token }}", source)
         self.assertIn("sign-commits: true", source)
         self.assertIn("signoff: true", source)
+        self.assertIn("author: " + "$" + "{{ steps.signing-bot.outputs.name }}", source)
+        self.assertIn("committer: " + "$" + "{{ steps.signing-bot.outputs.name }}", source)
         self.assertIn("pull-request-commits-verified", source)
         self.assertIn("steps.signing-bot.outputs.name", source)
         self.assertIn("steps.target-app-token.outputs.app-slug", source)
@@ -101,6 +103,9 @@ class SubmoduleCommandTest(unittest.TestCase):
         workflow = (ROOT / "workflow-templates/sync-workflow-templates.yml").read_text()
         self.assertIn("sign-commits: true", workflow)
         self.assertIn("signoff: true", workflow)
+        self.assertIn("committer: " + "$" + "{{ steps.sync-signer.outputs.name }}", workflow)
+        self.assertIn("author: " + "$" + "{{ steps.sync-signer.outputs.name }}", workflow)
+        self.assertIn("PAT authentication does not support verified GitHub bot commits", workflow)
 
     def test_update_action_negative_and_positive_cases(self) -> None:
         if not shutil.which("node"):
