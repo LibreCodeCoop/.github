@@ -107,6 +107,17 @@ class SubmoduleCommandTest(unittest.TestCase):
         self.assertIn("author: " + "$" + "{{ steps.sync-signer.outputs.name }}", workflow)
         self.assertIn("PAT authentication does not support verified GitHub bot commits", workflow)
 
+    def test_github_app_signer_uses_bot_account_id(self) -> None:
+        for filename in (
+            "command-submodule-pr.yml",
+            "command-update-submodule.yml",
+            "sync-workflow-templates.yml",
+        ):
+            with self.subTest(filename=filename):
+                source = (ROOT / "workflow-templates" / filename).read_text()
+                self.assertIn('gh api "users/${APP_SLUG}[bot]" --jq', source)
+                self.assertNotIn('gh api "apps/$APP_SLUG"', source)
+
     def test_update_action_negative_and_positive_cases(self) -> None:
         if not shutil.which("node"):
             self.skipTest("Node.js unavailable")

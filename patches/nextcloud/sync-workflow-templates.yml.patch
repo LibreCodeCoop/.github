@@ -256,10 +256,10 @@
 +          case "$MODE" in
 +            github-app)
 +              [[ "$APP_SLUG" =~ ^[a-zA-Z0-9-]+$ ]] || exit 1
-+              app_id="$(gh api "apps/$APP_SLUG" --jq '.id')"
-+              [[ "$app_id" =~ ^[0-9]+$ ]] || exit 1
++              bot_user_id="$(gh api "users/${APP_SLUG}[bot]" --jq '.id')"
++              [[ "$bot_user_id" =~ ^[0-9]+$ ]] || exit 1
 +              name="${APP_SLUG}[bot]"
-+              email="${app_id}+${APP_SLUG}[bot]@users.noreply.github.com"
++              email="${bot_user_id}+${APP_SLUG}[bot]@users.noreply.github.com"
 +              ;;
 +            github-token)
 +              name="github-actions[bot]"
