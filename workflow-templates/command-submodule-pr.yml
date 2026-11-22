@@ -233,10 +233,9 @@ jobs:
           signoff: true
           sign-commits: true
 
-      - name: Verify signed destination and report source
+      - name: Verify signed destination
         shell: bash
         env:
-          GH_TOKEN: ${{ github.token }}
           TARGET_URL: ${{ steps.target-pr.outputs.pull-request-url }}
           VERIFIED: ${{ steps.target-pr.outputs.pull-request-commits-verified }}
         run: |
@@ -245,8 +244,36 @@ jobs:
             echo "::error::Destination pull request commits were not verified"
             exit 1
           }
-          [[ -n "$TARGET_URL" ]] || exit 1
+          [[ -n "$TARGET_URL" ]] || {
+            echo "::error::Signed destination pull request URL is missing"
+            exit 1
+          }
+
+      - name: Create scoped source feedback token
+        id: source-feedback-token
+        continue-on-error: true
+        uses: actions/create-github-app-token@64ab729a6294000f5aa4a4bc0b73d1f32bc45510 # v3.3.0
+        with:
+          client-id: ${{ vars.WORKFLOW_SYNC_APP_CLIENT_ID }}
+          private-key: ${{ secrets.WORKFLOW_SYNC_APP_PRIVATE_KEY }}
+          owner: ${{ github.repository_owner }}
+          repositories: ${{ github.event.repository.name }}
+          permission-issues: write
+
+      - name: Report linked PR on source
+        if: steps.source-feedback-token.outputs.token != ''
+        continue-on-error: true
+        shell: bash
+        env:
+          GH_TOKEN: ${{ steps.source-feedback-token.outputs.token }}
+          TARGET_URL: ${{ steps.target-pr.outputs.pull-request-url }}
+        run: |
+          set -euo pipefail
           gh api --method POST "repos/$GITHUB_REPOSITORY/issues/$PR_NUMBER/comments" -f body="- Parent PR: $TARGET_URL"
+
+      - name: Warn if source feedback is unavailable
+        if: steps.source-feedback-token.outputs.token == ''
+        run: echo "::warning::Source feedback token unavailable; the verified destination pull request was created."
 
       - name: Add reaction on failure
         uses: peter-evans/create-or-update-comment@e8674b075228eee787fea43ef493e45ece1004c9 # v5.0.0
