@@ -70,6 +70,11 @@ class SubmoduleCommandTest(unittest.TestCase):
         source = (ROOT / "workflow-templates/command-submodule-pr.yml").read_text()
         self.assertNotIn("COMMAND_BOT_PAT", source)
         self.assertIn("issues: write", source)
+        self.assertIn("id: source-feedback-token", source)
+        self.assertIn("permission-issues: write", source)
+        self.assertIn("GH_TOKEN: " + "$" + "{{ steps.source-feedback-token.outputs.token }}", source)
+        self.assertLess(source.index("- name: Verify signed destination"),
+                        source.index("- name: Create scoped source feedback token"))
         self.assertIn('gh api --method POST "repos/$GITHUB_REPOSITORY/issues/$PR_NUMBER/comments"', source)
         self.assertNotIn("gh pr comment", source)
         self.assertIn("token: " + "$" + "{{ github.token }}", source)
