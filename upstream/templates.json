@@ -151,7 +151,8 @@
       "name": "nextcloud-command-submodule-pr",
       "source": "upstream/vendor/nextcloud/command-submodule-pr.yml",
       "patches": [
-        "patches/nextcloud/command-submodule-pr.yml.patch"
+        "patches/nextcloud/command-submodule-pr.yml.patch",
+        "patches/nextcloud/command-submodule-post-merge.yml.patch"
       ],
       "destination": "workflow-templates/command-submodule-pr.yml"
     }
