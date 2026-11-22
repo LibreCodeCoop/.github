@@ -80,6 +80,7 @@ class SubmoduleCommandTest(unittest.TestCase):
         self.assertIn("permission-pull-requests: write", source)
         self.assertIn("token: " + "$" + "{{ steps.target-app-token.outputs.token }}", source)
         self.assertIn("sign-commits: true", source)
+        self.assertIn("commit-message: 'chore(deps): update submodule from source PR #${{ env.PR_NUMBER }}'", source)
         self.assertIn("signoff: true", source)
         self.assertIn("author: " + "$" + "{{ steps.signing-bot.outputs.name }}", source)
         self.assertIn("committer: " + "$" + "{{ steps.signing-bot.outputs.name }}", source)

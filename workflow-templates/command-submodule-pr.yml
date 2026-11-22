@@ -226,6 +226,7 @@ jobs:
           base: ${{ env.BASE_REF }}
           branch: ${{ env.HEAD_REF }}
           title: ${{ env.PR_TITLE }}
+          commit-message: 'chore(deps): update submodule from source PR #${{ env.PR_NUMBER }}'
           body-path: ${{ runner.temp }}/pr-body.md
           labels: ${{ env.TARGET_PR_LABELS }}
           reviewers: ${{ env.TARGET_PR_REVIEWER == 'commenter' && env.COMMAND_ACTOR || env.TARGET_PR_REVIEWER }}
