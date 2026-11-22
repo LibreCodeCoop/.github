@@ -24,30 +24,10 @@ jobs:
       head_ref: ${{ steps.comment-branch.outputs.head_ref }}
       head_sha: ${{ steps.comment-branch.outputs.head_sha }}
       base_ref: ${{ steps.comment-branch.outputs.base_ref }}
+      source_gitlink_sha: ${{ steps.comment-branch.outputs.source_gitlink_sha }}
+      source_merged: ${{ steps.comment-branch.outputs.source_merged }}
 
     steps:
-      - name: Get repository from pull request comment
-        uses: actions/github-script@3a2844b7e9c422d3c10d287c895573f7108da1b3 # v9.0.0
-        id: get-repository
-        with:
-          github-token: ${{secrets.GITHUB_TOKEN}}
-          script: |
-            const pull = await github.rest.pulls.get({
-              owner: context.repo.owner,
-              repo: context.repo.repo,
-              pull_number: context.issue.number
-            });
-
-            const repositoryName = pull.data.head?.repo?.full_name
-            console.log(repositoryName)
-            return repositoryName
-
-      - name: Disabled on forks
-        if: ${{ fromJSON(steps.get-repository.outputs.result) != github.repository }}
-        run: |
-          echo 'Can not execute /server-pr on forks'
-          exit 1
-
       - name: Check actor permission
         uses: skjnldsv/check-actor-permission@69e92a3c4711150929bca9fcf34448c5bf5526e7 # v3.0
         with:
@@ -61,9 +41,46 @@ jobs:
           comment-id: ${{ github.event.comment.id }}
           reactions: '+1'
 
-      - name: Init branch
-        uses: xt0rted/pull-request-comment-branch@e8b8daa837e8ea7331c0003c9c316a64c6d8b0b1 # v3.0.0
+      - name: Resolve source pull request
+        uses: actions/github-script@3a2844b7e9c422d3c10d287c895573f7108da1b3 # v9.0.0
         id: comment-branch
+        with:
+          script: |
+            const {data: pr} = await github.rest.pulls.get({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              pull_number: context.issue.number,
+            });
+            const repository = context.repo.owner + '/' + context.repo.repo;
+            if (pr.head?.repo?.full_name !== repository) {
+              throw new Error('Only source pull requests from this repository are supported');
+            }
+            if (!/^(main|stable\d+)$/.test(pr.base?.ref || '')) {
+              throw new Error('Unsupported source base branch');
+            }
+            const headRef = pr.head?.ref || '';
+            if (!/^[a-zA-Z0-9_.\/-]+$/.test(headRef) ||
+                headRef.startsWith('/') || headRef.endsWith('/') ||
+                headRef.includes('..') || headRef.includes('//') ||
+                headRef.endsWith('.lock') || headRef.includes('@{')) {
+              throw new Error('Unsafe source branch name');
+            }
+            const shaPattern = /^[a-f0-9]{40}$/;
+            if (!shaPattern.test(pr.head?.sha || '')) {
+              throw new Error('Invalid source pull request HEAD');
+            }
+            const merged = Boolean(pr.merged_at);
+            if (pr.state !== 'open' && !(pr.state === 'closed' && merged)) {
+              throw new Error('The source pull request was closed without being merged');
+            }
+            if (merged && !shaPattern.test(pr.merge_commit_sha || '')) {
+              throw new Error('Merged pull request lacks a valid merge commit SHA');
+            }
+            core.setOutput('head_ref', headRef);
+            core.setOutput('head_sha', pr.head.sha);
+            core.setOutput('base_ref', pr.base.ref);
+            core.setOutput('source_gitlink_sha', merged ? pr.merge_commit_sha : pr.head.sha);
+            core.setOutput('source_merged', String(merged));
 
       - name: Add reaction on failure
         uses: peter-evans/create-or-update-comment@e8674b075228eee787fea43ef493e45ece1004c9 # v5.0.0
@@ -87,6 +104,8 @@ jobs:
       HEAD_REF: ${{ needs.init.outputs.head_ref }}
       HEAD_SHA: ${{ needs.init.outputs.head_sha }}
       BASE_REF: ${{ needs.init.outputs.base_ref }}
+      SOURCE_GITLINK_SHA: ${{ needs.init.outputs.source_gitlink_sha }}
+      SOURCE_MERGED: ${{ needs.init.outputs.source_merged }}
       PR_NUMBER: ${{ github.event.issue.number }}
       PR_TITLE: ${{ github.event.issue.title }}
 
@@ -124,7 +143,7 @@ jobs:
           path: source
           persist-credentials: false
           fetch-depth: 0
-          ref: ${{ needs.init.outputs.head_sha }}
+          ref: ${{ needs.init.outputs.source_gitlink_sha }}
 
       - name: Set up php
         uses: shivammathur/setup-php@eb7c497e18156a6bbabfef1d3a82760b9eda3962 # 2.40.0
@@ -134,13 +153,25 @@ jobs:
 
       - name: Generate composer diff
         working-directory: source
+        shell: bash
         run: |
+          set -euo pipefail
+          if [[ "$SOURCE_MERGED" == 'true' ]]; then
+            # Compare against the first parent of the merge commit, not today's stable branch.
+            [[ "$(git rev-list --parents -n 1 HEAD | wc -w)" -eq 3 ]] || {
+              echo '::error::Merged dependency PR does not have a two-parent merge commit'
+              exit 1
+            }
+            base_lock="$(git rev-parse HEAD^1):composer.lock"
+          else
+            base_lock="origin/$BASE_REF:composer.lock"
+          fi
           composer global config --no-interaction allow-plugins.ion-bazan/composer-diff true
           composer global require --no-interaction ion-bazan/composer-diff
           {
             echo "- [ ] $SUBMODULE_PATH: ${{ github.server_url }}/${{ github.repository }}/pull/$PR_NUMBER"
             echo
-            composer diff --with-links --base "origin/$BASE_REF:composer.lock" --target composer.lock
+            composer diff --with-links --base "$base_lock" --target composer.lock
           } > "$RUNNER_TEMP/pr-body.md"
           cat "$RUNNER_TEMP/pr-body.md"
 
@@ -160,12 +191,31 @@ jobs:
             exit 1
           fi
 
+      - name: Reject obsolete merged source
+        if: env.SOURCE_MERGED == 'true'
+        working-directory: parent
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          current_sha="$(git rev-parse "HEAD:$SUBMODULE_PATH")"
+          [[ "$current_sha" != "$SOURCE_GITLINK_SHA" ]] || {
+            echo '::error::Destination already references the merged source commit'
+            exit 1
+          }
+          status="$(gh api "repos/$GITHUB_REPOSITORY/compare/${current_sha}...${SOURCE_GITLINK_SHA}" --jq '.status')"
+          [[ "$status" == 'ahead' ]] || {
+            echo '::error::Merged source is not a descendant of the current destination dependency'
+            exit 1
+          }
+
       - name: Stage submodule reference
         working-directory: parent
         shell: bash
         run: |
           set -euo pipefail
-          git update-index --cacheinfo "160000,$HEAD_SHA,$SUBMODULE_PATH"
+          git update-index --cacheinfo "160000,$SOURCE_GITLINK_SHA,$SUBMODULE_PATH"
 
       - name: Create scoped target GitHub App token
         id: target-app-token
@@ -209,10 +259,25 @@ jobs:
           GH_TOKEN: ${{ github.token }}
         run: |
           set -euo pipefail
-          source_head="$(gh api "repos/$GITHUB_REPOSITORY/pulls/$PR_NUMBER" --jq '.head.sha')"
-          if [[ "$source_head" != "$HEAD_SHA" ]]; then
-            echo "::error::Source PR head changed before publication"
+          source_json="$(gh api "repos/$GITHUB_REPOSITORY/pulls/$PR_NUMBER")"
+          source_head="$(jq -er '.head.sha' <<< "$source_json")"
+          [[ "$source_head" == "$HEAD_SHA" ]] || {
+            echo '::error::Source PR HEAD changed before publication'
             exit 1
+          }
+          if [[ "$SOURCE_MERGED" == 'true' ]]; then
+            jq -e --arg sha "$SOURCE_GITLINK_SHA" \
+              '.state == "closed" and .merged_at != null and .merge_commit_sha == $sha' \
+              <<< "$source_json" >/dev/null || {
+              echo '::error::Source merge commit changed before publication'
+              exit 1
+            }
+          else
+            jq -e '.state == "open" and .merged_at == null' \
+              <<< "$source_json" >/dev/null || {
+              echo '::error::Source PR merged while preparing destination; rerun with merged SHA'
+              exit 1
+            }
           fi
 
       - name: Create signed target pull request
