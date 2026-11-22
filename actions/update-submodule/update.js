@@ -85,11 +85,17 @@ async function updateSubmodule({ github, context, core, env }) {
   const { data: updated } = await github.rest.git.createCommit({
     owner, repo, message, tree: tree.sha, parents: [pr.head.sha],
   })
-  if (updated.verification?.verified !== true ||
-      updated.author?.name !== signerName ||
-      updated.author?.email !== signerEmail ||
-      updated.committer?.email !== signerEmail) {
-    throw new Error('GitHub did not verify the signer identity; refusing to update the branch')
+  const verified = updated.verification?.verified === true
+  const authorMatchesDco = updated.author?.name === signerName &&
+    updated.author?.email === signerEmail
+  core.info?.('Submodule commit verification: verified=' +
+    verified + ', reason=' + (updated.verification?.reason || 'unknown') +
+    ', authorMatchesDCO=' + authorMatchesDco)
+  if (!verified) {
+    throw new Error('GitHub did not verify the signed submodule commit; refusing to update the branch')
+  }
+  if (!authorMatchesDco) {
+    throw new Error('Verified submodule commit author does not match the expected DCO signer')
   }
   await github.rest.git.updateRef({
     owner, repo, ref: 'heads/' + pr.head.ref, sha: updated.sha, force: false,

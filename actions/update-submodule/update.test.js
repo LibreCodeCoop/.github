@@ -142,6 +142,19 @@ test('rejects a signer identity mismatch even if signature is valid', async () =
     author: {name: 'untrusted[bot]', email: 'untrusted@example.com'},
     committer: {email: 'untrusted@example.com'},
   }})
-  await assert.rejects(update(f), /did not verify/)
+  await assert.rejects(update(f), /author does not match/)
   assert.equal(f.calls.some(x => x.name === 'git.updateRef'), false)
+})
+
+test('accepts verified GitHub App author with a distinct platform committer', async () => {
+  const f = fixture()
+  f.github.rest.git.createCommit = async () => ({data: {
+    sha: sha('f'),
+    verification: {verified: true, reason: 'valid'},
+    author: {name: 'workflows[bot]', email: '123+workflows[bot]@users.noreply.github.com'},
+    committer: {name: 'GitHub', email: 'noreply@github.com'},
+  }})
+  await update(f)
+  assert.equal(f.calls.some(x => x.name === 'git.updateRef'), true)
+  assert.equal(f.calls.some(x => x.name === 'issues.createComment'), true)
 })
